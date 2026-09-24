@@ -1,3 +1,5 @@
+export const APP_VERSION = 'v0.3';
+
 export type GradeLevel = 
   | '6_ef' 
   | '7_ef' 
@@ -57,14 +59,26 @@ export const SUBJECTS: SubjectInfo[] = [
   { id: 'filosofia', name: 'Filosofia & Sociologia', color: 'from-slate-600 to-zinc-700', iconName: 'Brain', description: 'Pensadores, Ética e Sociedade' },
 ];
 
+export interface UserConsent {
+  termsAccepted: boolean;
+  privacyAccepted: boolean;
+  timestamp: string; // Data e hora do consentimento ISO 8601
+  version: string;   // Versão dos termos (ex: 'v0.3')
+}
+
 export interface UserProfile {
   id: string;
-  name: string;
+  username: string; // Identificador minimizado para LGPD
+  name: string;     // Alias para compatibilidade
   email: string;
+  passwordHash?: string; // Hash seguro SHA-256
   grade: GradeLevel;
   xp: number;
   streak: number;
   level: number;
+  consent?: UserConsent;
+  consentRevoked?: boolean;
+  createdAt?: string;
   customGeminiKey?: string;
   useCustomDb: boolean;
   supabaseUrl?: string;
@@ -158,6 +172,7 @@ export interface SavedSchedule {
 
 export interface LeaderboardUser {
   id: string;
+  username: string;
   name: string;
   grade: GradeLevel;
   xp: number;

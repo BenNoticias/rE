@@ -154,7 +154,7 @@ export function Navbar({
               className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 transition-colors"
             >
               <User className="w-4 h-4 text-brand-600 dark:text-brand-400" />
-              <span className="hidden sm:inline">{profile.name.split(' ')[0]}</span>
+              <span className="hidden sm:inline">{profile.username || profile.name || 'Estudante'}</span>
             </button>
           </div>
 

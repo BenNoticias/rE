@@ -100,14 +100,14 @@ export function TopHeader({
           className="flex items-center space-x-3 pl-2 pr-1 py-1 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors group"
         >
           <div className="w-8 h-8 rounded-full bg-[#0a142f] text-white font-bold flex items-center justify-center text-xs shadow-sm">
-            {profile.name.charAt(0)}
+            {(profile.username || profile.name || 'E').charAt(0).toUpperCase()}
           </div>
           <div className="text-left hidden sm:block">
-            <span className="block text-xs font-bold text-slate-900 dark:text-slate-100 -mb-0.5">
-              {profile.name.split(' ')[0]}
+            <span className="block text-xs font-bold text-slate-900 dark:text-slate-100 -mb-0.5 max-w-[100px] truncate">
+              {profile.username || profile.name || 'Estudante'}
             </span>
             <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
-              Nível {profile.level}
+              Nível {profile.level || 1}
             </span>
           </div>
           <ChevronDown className="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200" />

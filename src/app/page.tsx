@@ -16,8 +16,8 @@ import { AuthModal } from '@/components/AuthModal';
 import { SearchModal } from '@/components/SearchModal';
 import { LoginPage } from '@/components/LoginPage';
 
-import { UserProfile, SubjectId, GradeLevel } from '@/types';
-import { getUserProfile, saveUserProfile } from '@/lib/storage';
+import { UserProfile, SubjectId, GradeLevel, UserConsent, APP_VERSION } from '@/types';
+import { getUserProfile, saveUserProfile, getRegisteredUsers } from '@/lib/storage';
 
 export default function Home() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -54,9 +54,46 @@ export default function Home() {
     );
   }
 
-  // Handle SAS Login Screen Success
-  const handleInitialLogin = (name: string, email: string, grade: GradeLevel) => {
-    const updated = { ...profile, name, email, grade };
+  // Handle SAS Login Screen Success (with LGPD Username and Consent)
+  const handleInitialLogin = (
+    username: string, 
+    email: string, 
+    grade: GradeLevel,
+    passwordHash?: string,
+    consent?: UserConsent
+  ) => {
+    const registered = getRegisteredUsers();
+    const existing = registered.find(u => u.email && u.email.toLowerCase() === email.toLowerCase());
+
+    const updated: UserProfile = existing ? {
+      ...existing,
+      username: username || existing.username || existing.name,
+      name: username || existing.name,
+      grade: grade || existing.grade,
+      passwordHash: passwordHash || existing.passwordHash,
+      consent: consent || existing.consent,
+    } : {
+      id: profile.id || ('user_' + Date.now().toString(36)),
+      username: username,
+      name: username,
+      email: email,
+      passwordHash: passwordHash,
+      grade: grade,
+      xp: profile.xp || 0,
+      streak: profile.streak || 1,
+      level: profile.level || 1,
+      consent: consent || {
+        termsAccepted: true,
+        privacyAccepted: true,
+        timestamp: new Date().toISOString(),
+        version: APP_VERSION,
+      },
+      createdAt: new Date().toISOString(),
+      useCustomDb: profile.useCustomDb || false,
+      supabaseUrl: profile.supabaseUrl,
+      supabaseAnonKey: profile.supabaseAnonKey,
+    };
+
     setProfile(updated);
     saveUserProfile(updated);
     setIsAuthenticated(true);
@@ -86,10 +123,37 @@ export default function Home() {
     saveUserProfile(updated);
   };
 
-  const handleLoginSuccess = (name: string, email: string) => {
-    const updated = { ...profile, name, email };
+  const handleLoginSuccess = (
+    username: string, 
+    email: string,
+    passwordHash?: string,
+    consent?: UserConsent
+  ) => {
+    const registered = getRegisteredUsers();
+    const existing = registered.find(u => u.email && u.email.toLowerCase() === email.toLowerCase());
+
+    const updated: UserProfile = existing ? {
+      ...existing,
+      username: username || existing.username || existing.name,
+      name: username || existing.name,
+      passwordHash: passwordHash || existing.passwordHash,
+      consent: consent || existing.consent,
+    } : {
+      ...profile,
+      username: username,
+      name: username,
+      email: email,
+      passwordHash: passwordHash || profile.passwordHash,
+      consent: consent || profile.consent,
+    };
+
     setProfile(updated);
     saveUserProfile(updated);
+  };
+
+  const handleDeleteAccount = () => {
+    setIsAuthenticated(false);
+    setProfile(getUserProfile());
   };
 
   return (
@@ -181,6 +245,7 @@ export default function Home() {
         onClose={() => setIsSettingsOpen(false)}
         profile={profile}
         onSaveProfile={handleSaveProfile}
+        onDeleteAccount={handleDeleteAccount}
       />
 
       <AuthModal

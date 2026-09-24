@@ -12,7 +12,7 @@ import {
   ArrowRight,
   Home
 } from 'lucide-react';
-import { UserProfile } from '@/types';
+import { UserProfile, APP_VERSION } from '@/types';
 
 interface SidebarProps {
   activeTab: string;
@@ -74,18 +74,28 @@ export function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
         </nav>
       </div>
 
-      {/* Bottom Premium Card */}
-      <div className="p-5 m-4 rounded-2xl bg-slate-900/80 border border-slate-800/80 text-white space-y-2">
-        <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300">
-          Plano Premium
-        </h4>
-        <p className="text-xs text-slate-400 leading-relaxed">
-          Acesse recursos exclusivos e acelere seus estudos.
-        </p>
-        <button className="text-xs font-bold text-blue-400 hover:text-blue-300 flex items-center space-x-1.5 pt-1 group">
-          <span>Ver Recursos</span>
-          <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
-        </button>
+      {/* Bottom Premium Card & Version */}
+      <div className="p-4 space-y-3">
+        <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800/80 text-white space-y-2">
+          <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300">
+            Plano Premium
+          </h4>
+          <p className="text-xs text-slate-400 leading-relaxed">
+            Acesse recursos exclusivos e acelere seus estudos.
+          </p>
+          <button className="text-xs font-bold text-blue-400 hover:text-blue-300 flex items-center space-x-1.5 pt-1 group">
+            <span>Ver Recursos</span>
+            <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+          </button>
+        </div>
+
+        {/* Discreet Version Tag */}
+        <div className="flex items-center justify-between px-2 text-[11px] text-slate-500">
+          <span>EstudaAI</span>
+          <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-slate-800/60 text-slate-400 border border-slate-800">
+            {APP_VERSION}
+          </span>
+        </div>
       </div>
 
     </aside>

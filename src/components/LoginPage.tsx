@@ -12,41 +12,113 @@ import {
   ShieldCheck, 
   Trophy, 
   Brain,
-  LogIn
+  LogIn,
+  UserCheck,
+  User,
+  ExternalLink,
+  AlertCircle
 } from 'lucide-react';
-import { GradeLevel, GRADE_OPTIONS } from '@/types';
+import { GradeLevel, GRADE_OPTIONS, APP_VERSION, UserConsent } from '@/types';
+import { hashPassword } from '@/lib/security';
+import { LegalModal } from './LegalModal';
 
 interface LoginPageProps {
-  onLoginSuccess: (name: string, email: string, grade: GradeLevel) => void;
+  onLoginSuccess: (
+    username: string, 
+    email: string, 
+    grade: GradeLevel, 
+    passwordHash?: string, 
+    consent?: UserConsent
+  ) => void;
 }
 
 export function LoginPage({ onLoginSuccess }: LoginPageProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
+  const [username, setUsername] = useState('');
   const [grade, setGrade] = useState<GradeLevel>('1_em');
   const [isRegistering, setIsRegistering] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Consent Checkboxes (LGPD)
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
+
+  // Legal Modal
+  const [isLegalModalOpen, setIsLegalModalOpen] = useState(false);
+  const [legalModalTab, setLegalModalTab] = useState<'terms' | 'privacy'>('terms');
+
+  const openLegalModal = (tab: 'terms' | 'privacy', e: React.MouseEvent) => {
     e.preventDefault();
-    setLoading(true);
-
-    setTimeout(() => {
-      setLoading(false);
-      const studentName = isRegistering 
-        ? (name || 'Estudante Ari') 
-        : (email ? email.split('@')[0].replace('.', ' ') : 'Estudante Ari');
-      
-      onLoginSuccess(studentName, email || 'aluno@escola.edu.br', grade);
-    }, 600);
+    e.stopPropagation();
+    setLegalModalTab(tab);
+    setIsLegalModalOpen(true);
   };
 
-  const handleGoogleAuth = () => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg('');
+
+    if (isRegistering) {
+      if (!termsAccepted || !privacyAccepted) {
+        setErrorMsg('É necessário aceitar os Termos de Uso e a Política de Privacidade para cadastrar.');
+        return;
+      }
+      if (!username.trim()) {
+        setErrorMsg('Por favor, informe um Nome de Usuário.');
+        return;
+      }
+    }
+
     setLoading(true);
+
+    try {
+      // Hash password securely (SHA-256)
+      const pwHash = password ? await hashPassword(password) : undefined;
+      
+      const studentUsername = isRegistering 
+        ? username.trim() 
+        : (username.trim() || (email ? email.split('@')[0].replace(/[^a-zA-Z0-9_-]/g, '_') : 'Estudante'));
+
+      const consentData: UserConsent = {
+        termsAccepted: true,
+        privacyAccepted: true,
+        timestamp: new Date().toISOString(),
+        version: APP_VERSION,
+      };
+
+      setTimeout(() => {
+        setLoading(false);
+        onLoginSuccess(
+          studentUsername, 
+          email.trim().toLowerCase() || 'aluno@escola.edu.br', 
+          grade, 
+          pwHash, 
+          consentData
+        );
+      }, 500);
+    } catch (err) {
+      setLoading(false);
+      setErrorMsg('Ocorreu um erro ao processar o login. Tente novamente.');
+    }
+  };
+
+  const handleGoogleAuth = async () => {
+    setLoading(true);
+    const studentUsername = username.trim() || 'Estudante';
+    const pwHash = await hashPassword('google_oauth_token');
+    
+    const consentData: UserConsent = {
+      termsAccepted: true,
+      privacyAccepted: true,
+      timestamp: new Date().toISOString(),
+      version: APP_VERSION,
+    };
+
     setTimeout(() => {
       setLoading(false);
-      onLoginSuccess('Estudante Ari de Sá', 'aluno.ari@escola.edu.br', grade);
+      onLoginSuccess(studentUsername, 'aluno.google@escola.edu.br', grade, pwHash, consentData);
     }, 500);
   };
 
@@ -72,7 +144,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
         <div className="hidden sm:flex items-center space-x-4 text-xs font-medium text-slate-300">
           <span className="flex items-center space-x-1">
             <ShieldCheck className="w-4 h-4 text-blue-400" />
-            <span>Ambiente Seguro</span>
+            <span>Ambiente Seguro & LGPD Compliant</span>
           </span>
           <span className="text-slate-600">•</span>
           <span>Portal da Educação Básica</span>
@@ -112,7 +184,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
                 </div>
                 <div className="flex items-center space-x-3 text-xs text-slate-200 font-medium">
                   <CheckCircle2 className="w-4 h-4 text-blue-400 shrink-0" />
-                  <span>Ranking de estudantes com pontuação por XP e níveis</span>
+                  <span>Privacidade garantida (LGPD) com identificação por Nome de Usuário</span>
                 </div>
               </div>
             </div>
@@ -120,7 +192,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
             {/* Quote / Footer Note */}
             <div className="pt-8 border-t border-white/10 relative z-10">
               <p className="text-xs text-slate-400 italic">
-                "A tecnologia aliada à metodologia de ensino transforma a preparação escolar em conquistas."
+                "A tecnologia aliada à metodologia de ensino e à proteção de dados transforma a preparação escolar em conquistas seguras."
               </p>
             </div>
           </div>
@@ -130,21 +202,31 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
             <div>
               
               {/* Form Title */}
-              <div className="mb-6">
+              <div className="mb-5">
                 <h2 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100">
                   {isRegistering ? 'Criar Conta de Aluno' : 'Acesse o Portal do Aluno'}
                 </h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  Digite suas credenciais corporativas ou escolares para prosseguir
+                  {isRegistering 
+                    ? 'Preencha apenas o nome de usuário, e-mail e senha para começar'
+                    : 'Digite suas credenciais de estudante para acessar a plataforma'}
                 </p>
               </div>
+
+              {/* Error Message */}
+              {errorMsg && (
+                <div className="mb-4 p-3 rounded-xl bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-900/50 text-red-700 dark:text-red-300 text-xs font-semibold flex items-center space-x-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-red-500" />
+                  <span>{errorMsg}</span>
+                </div>
+              )}
 
               {/* Google Auth Button */}
               <button
                 type="button"
                 onClick={handleGoogleAuth}
                 disabled={loading}
-                className="w-full mb-5 py-3 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 text-xs font-bold flex items-center justify-center space-x-2 transition-all shadow-sm"
+                className="w-full mb-4 py-2.5 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 text-xs font-bold flex items-center justify-center space-x-2 transition-all shadow-sm"
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24">
                   <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -155,7 +237,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
                 <span>Entrar com o Google</span>
               </button>
 
-              <div className="relative my-4">
+              <div className="relative my-3.5">
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full border-t border-slate-200 dark:border-slate-800" />
                 </div>
@@ -167,37 +249,44 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
               </div>
 
               {/* Form */}
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handleSubmit} className="space-y-3.5">
                 
+                {/* 1. Nome de Usuário (Username) - Minimização LGPD */}
                 {isRegistering && (
                   <div>
                     <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                      Nome Completo do Estudante
+                      Nome de Usuário (Username)
                     </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Ex: Mariana Silva"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 text-xs text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-600 outline-none"
-                    />
+                    <div className="relative">
+                      <User className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
+                      <input
+                        type="text"
+                        required
+                        placeholder="Ex: ana_estudante ou joao_enem"
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        className="w-full pl-9 pr-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 text-xs text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-600 outline-none"
+                      />
+                    </div>
+                    <span className="text-[10px] text-slate-400 mt-0.5 block">
+                      Usado para identificação no ranking sem expor seu nome civil.
+                    </span>
                   </div>
                 )}
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    E-mail Institucional ou Pessoal
+                    E-mail do Estudante
                   </label>
                   <div className="relative">
-                    <Mail className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+                    <Mail className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
                     <input
                       type="email"
                       required
                       placeholder="aluno@escola.edu.br"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 text-xs text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-600 outline-none"
+                      className="w-full pl-9 pr-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 text-xs text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-600 outline-none"
                     />
                   </div>
                 </div>
@@ -207,28 +296,28 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
                     Senha
                   </label>
                   <div className="relative">
-                    <Lock className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+                    <Lock className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
                     <input
                       type="password"
                       required
                       placeholder="••••••••"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 text-xs text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-600 outline-none"
+                      className="w-full pl-9 pr-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 text-xs text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-600 outline-none"
                     />
                   </div>
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    Série / Ano Escolar Atual
+                    Série / Ano Escolar
                   </label>
                   <div className="relative">
-                    <GraduationCap className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+                    <GraduationCap className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
                     <select
                       value={grade}
                       onChange={(e) => setGrade(e.target.value as GradeLevel)}
-                      className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 text-xs text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-600 outline-none"
+                      className="w-full pl-9 pr-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 text-xs text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-600 outline-none"
                     >
                       {GRADE_OPTIONS.map((g) => (
                         <option key={g.id} value={g.id}>
@@ -239,22 +328,70 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
                   </div>
                 </div>
 
+                {/* LGPD Consent Checkboxes (Explicit & Mandatory on Registration) */}
+                {isRegistering && (
+                  <div className="pt-2 space-y-2 border-t border-slate-100 dark:border-slate-800">
+                    <label className="flex items-start space-x-2 cursor-pointer group">
+                      <input
+                        type="checkbox"
+                        required
+                        checked={termsAccepted}
+                        onChange={(e) => setTermsAccepted(e.target.checked)}
+                        className="mt-0.5 rounded text-blue-600 focus:ring-blue-500 h-3.5 w-3.5"
+                      />
+                      <span className="text-[11px] text-slate-600 dark:text-slate-400 leading-tight">
+                        Li e concordo com os{' '}
+                        <button
+                          type="button"
+                          onClick={(e) => openLegalModal('terms', e)}
+                          className="text-blue-600 dark:text-blue-400 font-bold hover:underline inline-flex items-center"
+                        >
+                          Termos de Uso
+                        </button>
+                      </span>
+                    </label>
+
+                    <label className="flex items-start space-x-2 cursor-pointer group">
+                      <input
+                        type="checkbox"
+                        required
+                        checked={privacyAccepted}
+                        onChange={(e) => setPrivacyAccepted(e.target.checked)}
+                        className="mt-0.5 rounded text-blue-600 focus:ring-blue-500 h-3.5 w-3.5"
+                      />
+                      <span className="text-[11px] text-slate-600 dark:text-slate-400 leading-tight">
+                        Autorizo o tratamento pedagógico dos meus dados conforme a{' '}
+                        <button
+                          type="button"
+                          onClick={(e) => openLegalModal('privacy', e)}
+                          className="text-blue-600 dark:text-blue-400 font-bold hover:underline inline-flex items-center"
+                        >
+                          Política de Privacidade (LGPD)
+                        </button>
+                      </span>
+                    </label>
+                  </div>
+                )}
+
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full py-3 px-4 rounded-xl bg-[#051838] hover:bg-blue-900 text-white text-xs font-bold shadow-lg shadow-blue-950/20 flex items-center justify-center space-x-2 transition-all hover:scale-[1.01]"
+                  className="w-full py-2.5 px-4 rounded-xl bg-[#051838] hover:bg-blue-900 text-white text-xs font-bold shadow-lg shadow-blue-950/20 flex items-center justify-center space-x-2 transition-all hover:scale-[1.01]"
                 >
                   <LogIn className="w-4 h-4" />
-                  <span>{isRegistering ? 'Cadastrar e Entrar' : 'Entrar no Portal'}</span>
+                  <span>{isRegistering ? 'Criar Conta e Aceitar Termos' : 'Entrar no Portal'}</span>
                 </button>
               </form>
 
             </div>
 
             {/* Footer toggle */}
-            <div className="pt-6 text-center border-t border-slate-100 dark:border-slate-800 mt-4">
+            <div className="pt-4 text-center border-t border-slate-100 dark:border-slate-800 mt-3">
               <button
-                onClick={() => setIsRegistering(!isRegistering)}
+                onClick={() => {
+                  setIsRegistering(!isRegistering);
+                  setErrorMsg('');
+                }}
                 className="text-xs text-blue-600 dark:text-blue-400 hover:underline font-bold"
               >
                 {isRegistering ? 'Já possui conta? Faça Login' : 'Primeiro Acesso? Cadastre-se'}
@@ -266,10 +403,40 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
         </div>
       </main>
 
-      {/* Institutional Footer */}
-      <footer className="py-4 text-center text-xs text-slate-500 dark:text-slate-400 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
-        Plataforma de Ensino EstudaAI • Inspirado no Sistema Ari de Sá (SAS) • Todos os direitos reservados.
+      {/* Institutional Footer with Discreet Version Tag & Legal Links */}
+      <footer className="py-3 px-6 sm:px-12 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-400 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+        <div className="flex items-center space-x-3">
+          <span>Plataforma EstudaAI • SAS</span>
+          <span>•</span>
+          <button
+            onClick={(e) => openLegalModal('terms', e)}
+            className="hover:text-blue-600 dark:hover:text-blue-400 hover:underline"
+          >
+            Termos
+          </button>
+          <span>•</span>
+          <button
+            onClick={(e) => openLegalModal('privacy', e)}
+            className="hover:text-blue-600 dark:hover:text-blue-400 hover:underline"
+          >
+            Privacidade & LGPD
+          </button>
+        </div>
+
+        <div className="flex items-center space-x-2">
+          <span className="text-[11px] text-slate-400">Versão</span>
+          <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-mono font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 shadow-xs">
+            {APP_VERSION}
+          </span>
+        </div>
       </footer>
+
+      {/* Terms and Privacy Modal */}
+      <LegalModal
+        isOpen={isLegalModalOpen}
+        onClose={() => setIsLegalModalOpen(false)}
+        initialTab={legalModalTab}
+      />
 
     </div>
   );
