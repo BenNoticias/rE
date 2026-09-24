@@ -5,16 +5,14 @@ import {
   Search, 
   Flame, 
   Gem, 
-  Bell, 
   ChevronDown, 
   Moon, 
   Sun, 
-  Settings, 
-  User,
-  GraduationCap
+  Settings 
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
-import { UserProfile, GRADE_OPTIONS } from '@/types';
+import { UserProfile } from '@/types';
+import { NotificationCenter } from '@/components/NotificationCenter';
 
 interface TopHeaderProps {
   profile: UserProfile;
@@ -22,6 +20,7 @@ interface TopHeaderProps {
   openAuth: () => void;
   openSearchModal: () => void;
   openOnboarding: () => void;
+  onNavigate?: (tab: string, subject?: any) => void;
 }
 
 export function TopHeader({
@@ -29,7 +28,8 @@ export function TopHeader({
   openSettings,
   openAuth,
   openSearchModal,
-  openOnboarding
+  openOnboarding,
+  onNavigate
 }: TopHeaderProps) {
   const { theme, setTheme } = useTheme();
 
@@ -44,7 +44,7 @@ export function TopHeader({
         >
           <div className="flex items-center space-x-2.5">
             <Search className="w-4 h-4 text-slate-400" />
-            <span>Buscar conteúdos, simulados, mapas...</span>
+            <span>Buscar conteúdos, vestibulares, simulados...</span>
           </div>
           <kbd className="px-2 py-0.5 rounded-md bg-white dark:bg-slate-700 text-[10px] font-mono text-slate-500 dark:text-slate-300 shadow-sm border border-slate-200 dark:border-slate-600">
             Ctrl K
@@ -67,14 +67,8 @@ export function TopHeader({
           <span>{profile.xp} XP</span>
         </div>
 
-        {/* Notifications Bell */}
-        <button 
-          className="p-2 rounded-xl text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors relative"
-          title="Notificações"
-        >
-          <Bell className="w-4 h-4" />
-          <span className="w-2 h-2 rounded-full bg-blue-600 absolute top-2 right-2" />
-        </button>
+        {/* Fully Functional Notification Center */}
+        <NotificationCenter onNavigate={onNavigate} />
 
         {/* Dark/Light Mode Toggle */}
         <button

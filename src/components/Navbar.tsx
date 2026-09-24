@@ -41,6 +41,7 @@ export function Navbar({
 
   const navItems = [
     { id: 'dashboard', label: 'Painel', icon: BookOpen },
+    { id: 'vestibulares', label: 'Vestibulares', icon: GraduationCap },
     { id: 'summary', label: 'Resumos IA', icon: Sparkles },
     { id: 'mindmap', label: 'Mapas Mentais', icon: MapPin },
     { id: 'quiz', label: 'Simulados', icon: CheckCircle2 },
@@ -68,12 +69,12 @@ export function Navbar({
                   EstudaAI
                 </span>
                 <span className="block text-[10px] uppercase font-semibold text-slate-400 dark:text-slate-500 -mt-1 tracking-wider">
-                  Educação Básica
+                  Educação Básica & Vestibulares
                 </span>
               </div>
             </button>
 
-            {/* Current Grade Badge (Clickable to change) */}
+            {/* Current Grade Badge */}
             <button
               onClick={openOnboarding}
               className="hidden md:flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-brand-50 text-brand-700 dark:bg-brand-950/60 dark:text-brand-300 border border-brand-200 dark:border-brand-800 hover:bg-brand-100 transition-colors"

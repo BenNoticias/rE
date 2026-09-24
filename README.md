@@ -1,25 +1,25 @@
-# 📚 Estuda AI - Plataforma Inteligente de Estudos
+# 📚 Estuda AI - Plataforma Inteligente de Estudos (v0.4)
 
-O **Estuda AI** é uma plataforma educacional moderna e interativa que utiliza inteligência artificial (Google Gemini) para auxiliar estudantes nos ensinos Fundamental e Médio com simulados, mapas mentais, flashcards, cronogramas e resumos inteligentes.
+O **Estuda AI** é uma plataforma educacional moderna e 100% gratuita que utiliza inteligência artificial (Google Gemini) para auxiliar estudantes nos ensinos Fundamental, Médio e Pré-Vestibular com simulados, provas anteriores, correção de redações, mapas mentais, flashcards, cronogramas e resumos inteligentes.
 
 ---
 
-## ✨ Funcionalidades
+## ✨ Funcionalidades (v0.4)
 
+- 🎓 **Vestibulares & Correção de Redação**: Acervo de provas anteriores (ENEM, FUVEST, UNICAMP, UERJ) com gabarito comentado e correção automatizada de redação via Gemini AI baseada em competências oficiais.
+- 🔔 **Central de Notificações Dinâmicas**: Alertas em tempo real para cronograma de estudos, avisos de ranking, simulados concluídos e resultado de redações.
 - 🧠 **Simulados & Questões**: Geração dinâmica de simulados com níveis de dificuldade, explicações detalhadas e cronômetro.
 - 🗺️ **Mapas Mentais Interativos**: Visualização conceitual baseada em nós conectados (`@xyflow/react`).
-- 🗂️ **Flashcards & Repetição Espaçada**: Prática ágil com cartões interativos.
-- 📅 **Cronograma de Estudos**: Planejamento personalizado de rotinas de estudo.
-- 📝 **Resumos Inteligentes**: Sínteses didáticas adaptadas para Ensino Fundamental e Ensino Médio.
-- 🏆 **Ranking & Gamificação**: Tiers de progresso (Bronze a Lenda), estatísticas de ofensiva (streaks) e classificações semanais/mensais.
-- 🔐 **Segurança & Privacidade**: Autenticação segura via Supabase, proteção LGPD/GDPR e gerenciamento de perfil completo.
+- 📅 **Cronograma de Estudos & Pomodoro**: Planejamento personalizado com temporizador de foco.
+- 🏆 **Ranking & Gamificação**: Tiers de progresso (Bronze a Lenda), estatísticas de ofensiva (*streaks*) e classificações de XP.
+- 🔐 **Segurança & Conformidade LGPD**: Autenticação via Supabase, exportação de dados e transparência.
 - 🌓 **Modo Escuro / Claro**: Interface intuitiva com suporte a temas.
 
 ---
 
 ## 📋 Log de Atualizações
 
-Para verificar a lista completa de novidades, atualizações de segurança, novos componentes e melhorias da versão mais recente, consulte o [CHANGELOG.md](./CHANGELOG.md).
+Para verificar a lista completa de novidades, atualizações de segurança, novos componentes e melhorias da versão v0.4, consulte o [CHANGELOG.md](./CHANGELOG.md).
 
 ---
 
@@ -30,9 +30,7 @@ Para verificar a lista completa de novidades, atualizações de segurança, novo
 - **Tailwind CSS**
 - **Google Generative AI SDK** (Gemini)
 - **Supabase** (Autenticação e Banco de Dados)
-- **@xyflow/react** (Mapas mentais interativos)
 - **Lucide React** (Ícones modernos)
-- **Canvas Confetti**
 
 ---
 

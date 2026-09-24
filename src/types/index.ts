@@ -1,4 +1,4 @@
-export const APP_VERSION = 'v0.3';
+export const APP_VERSION = 'v0.4';
 
 export type GradeLevel = 
   | '6_ef' 
@@ -63,7 +63,7 @@ export interface UserConsent {
   termsAccepted: boolean;
   privacyAccepted: boolean;
   timestamp: string; // Data e hora do consentimento ISO 8601
-  version: string;   // Versão dos termos (ex: 'v0.3')
+  version: string;   // Versão dos termos (ex: 'v0.4')
 }
 
 export interface UserProfile {
@@ -179,4 +179,67 @@ export interface LeaderboardUser {
   level: number;
   streak: number;
   isCurrentUser?: boolean;
+}
+
+// --------------------------------------------------------------------------
+// NOTIFICAÇÕES E ALERTAS DINÂMICOS (v0.4)
+// --------------------------------------------------------------------------
+export type NotificationType = 'schedule' | 'ranking' | 'quiz' | 'essay' | 'system';
+
+export interface NotificationItem {
+  id: string;
+  title: string;
+  message: string;
+  type: NotificationType;
+  read: boolean;
+  createdAt: string;
+  linkTab?: string;
+  linkSubject?: SubjectId;
+}
+
+// --------------------------------------------------------------------------
+// VESTIBULARES E CORREÇÃO DE REDAÇÃO COM GEMINI (v0.4)
+// --------------------------------------------------------------------------
+export type VestibularExamModel = 'enem' | 'fuvest' | 'unicamp' | 'uerj' | 'ita';
+
+export interface CompetencyScore {
+  name: string;
+  score: number;
+  maxScore: number;
+  feedback: string;
+}
+
+export interface SuggestedRewrite {
+  original: string;
+  suggested: string;
+  explanation: string;
+}
+
+export interface EssayCorrectionResult {
+  id: string;
+  examModel: VestibularExamModel;
+  theme: string;
+  essayTitle?: string;
+  essayText: string;
+  finalScore: number;
+  maxScore: number;
+  assessmentLevel: string;
+  competencies: CompetencyScore[];
+  strengths: string[];
+  improvements: string[];
+  suggestedRewrites: SuggestedRewrite[];
+  generalFeedback: string;
+  createdAt: string;
+}
+
+export interface PastExamQuestion {
+  id: string;
+  exam: string;       // ex: 'ENEM', 'FUVEST', 'UNICAMP', 'UERJ', 'ITA'
+  year: number;       // ex: 2024, 2023, 2022
+  subject: SubjectId;
+  area: string;       // ex: 'Matemática e Suas Tecnologias', 'Linguagens'
+  questionText: string;
+  options: string[];
+  correctAnswer: number;
+  explanation: string;
 }

@@ -19,7 +19,8 @@ import {
   CheckCircle2,
   MapPin,
   Flame,
-  Plus
+  Plus,
+  GraduationCap
 } from 'lucide-react';
 import { UserProfile, SUBJECTS, SubjectId, GRADE_OPTIONS, APP_VERSION } from '@/types';
 import { getSavedSummaries, getSavedQuizzes, getSavedMindmaps, getSavedSchedules } from '@/lib/storage';
@@ -100,33 +101,29 @@ export function Dashboard({ profile, onNavigate, openOnboarding }: DashboardProp
         id: sc.id,
         title: sc.title,
         subjectName: 'Cronograma',
-        type: 'Planejamento',
+        type: 'Plano Semanal',
         tab: 'schedule',
         dateStr: sc.createdAt,
       });
     });
 
-    // Sort by most recent
+    // Sort by date descending
     items.sort((a, b) => new Date(b.dateStr).getTime() - new Date(a.dateStr).getTime());
-    setRecentActivities(items.slice(0, 3));
+    setRecentActivities(items.slice(0, 5));
   }, []);
 
-  const disciplineCards = [
-    { id: 'matematica' as SubjectId, name: 'Matemática', count: 'Álgebra e Geometria', icon: TrendingUp, color: 'text-blue-500' },
-    { id: 'fisica' as SubjectId, name: 'Física', count: 'Mecânica e Energia', icon: Activity, color: 'text-sky-500' },
-    { id: 'quimica' as SubjectId, name: 'Química', count: 'Reações e Tabela', icon: FlaskConical, color: 'text-indigo-500' },
-    { id: 'historia' as SubjectId, name: 'História', count: 'Brasil e Geral', icon: Landmark, color: 'text-amber-500' },
-    { id: 'biologia' as SubjectId, name: 'Biologia', count: 'Citologia e Ecologia', icon: Dna, color: 'text-emerald-500' },
-  ];
-
   return (
-    <div className="space-y-8 font-sans pb-6">
+    <div className="space-y-8 font-sans">
       
-      {/* Blue Hero Card Banner */}
-      <div className="p-6 sm:p-8 rounded-2xl bg-[#0052cc] text-white shadow-xl relative overflow-hidden">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-center">
+      {/* Blue Hero Section */}
+      <div className="relative overflow-hidden rounded-3xl bg-[#031533] p-8 text-white shadow-xl border border-blue-900/60">
+        
+        {/* Subtle Background Glow */}
+        <div className="absolute right-0 top-0 bottom-0 w-1/2 bg-[radial-gradient(circle_at_top_right,rgba(37,99,235,0.25),transparent_70%)] pointer-events-none" />
+
+        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-3 gap-6 items-center">
           
-          {/* Left Welcome Area */}
+          {/* Left Greeting & Grade */}
           <div className="lg:col-span-2 space-y-4">
             
             {/* Grade Badge */}
@@ -147,7 +144,7 @@ export function Dashboard({ profile, onNavigate, openOnboarding }: DashboardProp
             </h1>
 
             <p className="text-sm text-blue-100 max-w-xl leading-relaxed">
-              O que você quer dominar hoje? Escolha uma matéria abaixo ou use os geradores de IA para criar resumos, mapas mentais e simulados adaptados à sua série.
+              O que você quer dominar hoje? Escolha uma matéria abaixo, pratique vestibulares anteriores ou use a IA para corrigir sua redação no modelo ENEM.
             </p>
           </div>
 
@@ -193,8 +190,34 @@ export function Dashboard({ profile, onNavigate, openOnboarding }: DashboardProp
           </button>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
           
+          {/* Tool 0: Vestibulares & Redação */}
+          <div 
+            onClick={() => onNavigate('vestibulares')}
+            className="p-5 rounded-2xl bg-gradient-to-br from-blue-900 to-indigo-950 border border-blue-700/60 text-white shadow-md hover:shadow-xl transition-all cursor-pointer group flex flex-col justify-between space-y-4"
+          >
+            <div className="space-y-3">
+              <div className="w-10 h-10 rounded-xl bg-blue-500/20 text-blue-300 flex items-center justify-center border border-blue-400/30">
+                <GraduationCap className="w-5 h-5 text-blue-400" />
+              </div>
+              <div>
+                <span className="inline-block px-2 py-0.5 rounded bg-amber-500/30 text-amber-300 text-[10px] font-bold uppercase mb-1">
+                  NOVO v0.4
+                </span>
+                <h3 className="text-sm font-bold text-white">
+                  Vestibulares & Redação
+                </h3>
+                <p className="text-xs text-blue-200 mt-1 leading-relaxed">
+                  Provas do ENEM/FUVEST e correção de redação por IA.
+                </p>
+              </div>
+            </div>
+            <div className="pt-2 text-right">
+              <ArrowRight className="w-4 h-4 text-blue-300 inline-block group-hover:translate-x-1 transition-transform" />
+            </div>
+          </div>
+
           {/* Tool 1: Resumos */}
           <div 
             onClick={() => onNavigate('summary')}
@@ -290,135 +313,91 @@ export function Dashboard({ profile, onNavigate, openOnboarding }: DashboardProp
         </div>
       </div>
 
-      {/* Disciplinas Section */}
-      <div className="space-y-4">
-        <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">
-          Disciplinas
-        </h2>
-
-        <div className="flex items-center space-x-3 overflow-x-auto pb-2 no-scrollbar">
-          {disciplineCards.map((disc) => {
-            const Icon = disc.icon;
-            return (
-              <button
-                key={disc.id}
-                onClick={() => onNavigate('summary', disc.id)}
-                className="flex items-center space-x-3 px-4 py-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md transition-all shrink-0 group text-left min-w-[170px]"
-              >
-                <div className={`p-2 rounded-xl bg-slate-50 dark:bg-slate-800 ${disc.color}`}>
-                  <Icon className="w-4 h-4" />
-                </div>
-                <div>
-                  <span className="block text-xs font-bold text-slate-900 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-blue-400">
-                    {disc.name}
-                  </span>
-                  <span className="text-[11px] text-slate-400 font-medium">
-                    {disc.count}
-                  </span>
-                </div>
-              </button>
-            );
-          })}
-
-          <button 
-            onClick={() => onNavigate('summary')}
-            className="w-9 h-9 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-center text-blue-600 dark:text-blue-400 hover:bg-slate-50 shrink-0"
-            title="Ver todas as matérias"
-          >
-            <ChevronRight className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-
-      {/* Atividades Recentes / Continue de onde parou Section */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
+      {/* Grid: Matérias + Atividade Recente */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        {/* Left Column: Matérias */}
+        <div className="lg:col-span-2 space-y-4">
           <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">
-            Continue de onde parou
+            Disciplinas do Seu Ano ({gradeLabel})
           </h2>
-          <button 
-            onClick={() => onNavigate('history')}
-            className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline"
-          >
-            Ver histórico completo
-          </button>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {SUBJECTS.map((subj) => {
+              return (
+                <button
+                  key={subj.id}
+                  onClick={() => onNavigate('summary', subj.id)}
+                  className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 hover:border-blue-500 text-left transition-all hover:-translate-y-0.5 hover:shadow-md group flex flex-col justify-between space-y-3"
+                >
+                  <div className="space-y-1">
+                    <span className="block text-xs font-bold text-slate-900 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                      {subj.name}
+                    </span>
+                    <span className="block text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2">
+                      {subj.description}
+                    </span>
+                  </div>
+                  <div className="text-[10px] font-bold text-blue-600 dark:text-blue-400 flex items-center space-x-1">
+                    <span>Estudar</span>
+                    <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                  </div>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
-        {recentActivities.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {recentActivities.map((item) => (
-              <div
-                key={item.id}
-                onClick={() => onNavigate(item.tab)}
-                className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md transition-all cursor-pointer space-y-3 group"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 px-2 py-0.5 rounded">
-                    {item.subjectName} • {item.type}
-                  </span>
-                  {item.score !== undefined && (
-                    <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                      {item.score}%
+        {/* Right Column: Atividade Recente */}
+        <div className="space-y-4">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">
+            Sua Atividade Recente
+          </h2>
+
+          <div className="p-4 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-3">
+            {recentActivities.length === 0 ? (
+              <div className="p-6 text-center text-slate-400 text-xs space-y-2">
+                <Clock className="w-8 h-8 mx-auto stroke-1 opacity-50" />
+                <p>Nenhuma atividade salva recentemente.</p>
+                <button
+                  onClick={() => onNavigate('summary')}
+                  className="text-xs font-bold text-blue-600 hover:underline inline-block pt-1"
+                >
+                  Gerar seu primeiro resumo
+                </button>
+              </div>
+            ) : (
+              recentActivities.map((act) => (
+                <div
+                  key={act.id}
+                  onClick={() => onNavigate(act.tab)}
+                  className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer flex items-center justify-between"
+                >
+                  <div className="space-y-0.5 min-w-0 pr-2">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">
+                        {act.type}
+                      </span>
+                      <span className="text-[10px] text-slate-400">•</span>
+                      <span className="text-[10px] text-slate-500 font-medium">
+                        {act.subjectName}
+                      </span>
+                    </div>
+                    <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
+                      {act.title}
+                    </h4>
+                  </div>
+                  {act.score !== undefined && (
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-bold text-[10px] shrink-0">
+                      {act.score}%
                     </span>
                   )}
                 </div>
-
-                <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 truncate">
-                  {item.title}
-                </h3>
-
-                <div className="text-[10px] text-slate-400 flex items-center justify-between pt-1">
-                  <span>{new Date(item.dateStr).toLocaleDateString('pt-BR')}</span>
-                  <span className="font-semibold text-blue-600 dark:text-blue-400 flex items-center space-x-1">
-                    <span>Acessar</span>
-                    <ArrowRight className="w-3 h-3" />
-                  </span>
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
-        ) : (
-          <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-center space-y-3 shadow-sm">
-            <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center mx-auto">
-              <BookOpen className="w-5 h-5" />
-            </div>
-            <div>
-              <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">
-                Nenhuma atividade recente registrada
-              </h4>
-              <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto mt-1">
-                Gere resumos, construa mapas mentais ou responda simulados para acompanhar o seu progresso aqui.
-              </p>
-            </div>
-            <div className="flex items-center justify-center space-x-3 pt-2">
-              <button
-                onClick={() => onNavigate('summary')}
-                className="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-sm transition-all"
-              >
-                Criar Resumo
-              </button>
-              <button
-                onClick={() => onNavigate('quiz')}
-                className="px-3.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold transition-all"
-              >
-                Fazer Simulado
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
+        </div>
 
-      {/* Minimalist Discreet Version Tag & Institutional Footer */}
-      <div className="pt-8 pb-2 border-t border-slate-200/70 dark:border-slate-800/70 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-400 dark:text-slate-500">
-        <div className="flex items-center space-x-2">
-          <span>EstudaAI • Plataforma de Inteligência Educacional</span>
-        </div>
-        <div className="flex items-center space-x-2">
-          <span className="text-[11px] text-slate-400 dark:text-slate-500">Versão da Plataforma</span>
-          <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-mono font-semibold bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-400 border border-slate-200/80 dark:border-slate-700/80 shadow-xs">
-            {APP_VERSION}
-          </span>
-        </div>
       </div>
 
     </div>

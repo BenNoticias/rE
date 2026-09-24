@@ -9,10 +9,10 @@ import {
   Calendar, 
   Trophy, 
   History, 
-  ArrowRight,
-  Home
+  Home,
+  GraduationCap
 } from 'lucide-react';
-import { UserProfile, APP_VERSION } from '@/types';
+import { APP_VERSION } from '@/types';
 
 interface SidebarProps {
   activeTab: string;
@@ -24,6 +24,7 @@ interface SidebarProps {
 export function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
   const menuItems = [
     { id: 'dashboard', label: 'Início', icon: Home },
+    { id: 'vestibulares', label: 'Vestibulares & Redação', icon: GraduationCap },
     { id: 'summary', label: 'Resumos', icon: BookOpen },
     { id: 'mindmap', label: 'Mapas Mentais', icon: MapPin },
     { id: 'quiz', label: 'Simulados', icon: CheckCircle2 },
@@ -36,7 +37,7 @@ export function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
     <aside className="w-64 bg-[#0a142f] text-slate-300 flex flex-col justify-between min-h-screen shrink-0 sticky top-0 h-screen z-30 font-sans border-r border-slate-800/60 hidden md:flex">
       
       {/* Top Logo & Menu */}
-      <div className="p-6 space-y-8">
+      <div className="p-6 space-y-8 overflow-y-auto">
         
         {/* Brand Logo */}
         <button 
@@ -74,22 +75,19 @@ export function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
         </nav>
       </div>
 
-      {/* Bottom Premium Card & Version */}
-      <div className="p-4 space-y-3">
-        <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800/80 text-white space-y-2">
-          <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300">
-            Plano Premium
-          </h4>
-          <p className="text-xs text-slate-400 leading-relaxed">
-            Acesse recursos exclusivos e acelere seus estudos.
+      {/* Bottom Free Access Card & Version */}
+      <div className="p-4 space-y-3 shrink-0">
+        <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-950/40 to-teal-950/40 border border-emerald-800/40 text-white space-y-2">
+          <div className="flex items-center space-x-2 text-emerald-400">
+            <Sparkles className="w-4 h-4" />
+            <span className="text-xs font-bold uppercase tracking-wider">100% Gratuito</span>
+          </div>
+          <p className="text-xs text-slate-300 leading-relaxed">
+            Acesso ilimitado a simulados, resumos, mapas e correção de redação por IA.
           </p>
-          <button className="text-xs font-bold text-blue-400 hover:text-blue-300 flex items-center space-x-1.5 pt-1 group">
-            <span>Ver Recursos</span>
-            <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
-          </button>
         </div>
 
-        {/* Discreet Version Tag */}
+        {/* Version Tag */}
         <div className="flex items-center justify-between px-2 text-[11px] text-slate-500">
           <span>EstudaAI</span>
           <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-slate-800/60 text-slate-400 border border-slate-800">

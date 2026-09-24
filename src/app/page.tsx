@@ -10,6 +10,7 @@ import { QuizModule } from '@/components/QuizModule';
 import { ScheduleModule } from '@/components/ScheduleModule';
 import { LeaderboardModule } from '@/components/LeaderboardModule';
 import { HistoryModule } from '@/components/HistoryModule';
+import { VestibularesModule } from '@/components/VestibularesModule';
 import { OnboardingModal } from '@/components/OnboardingModal';
 import { SettingsModal } from '@/components/SettingsModal';
 import { AuthModal } from '@/components/AuthModal';
@@ -54,7 +55,7 @@ export default function Home() {
     );
   }
 
-  // Handle SAS Login Screen Success (with LGPD Username and Consent)
+  // Handle SAS Login Screen Success
   const handleInitialLogin = (
     username: string, 
     email: string, 
@@ -99,7 +100,6 @@ export default function Home() {
     setIsAuthenticated(true);
   };
 
-  // If not authenticated, render SAS Inspired LoginPage
   if (!isAuthenticated) {
     return <LoginPage onLoginSuccess={handleInitialLogin} />;
   }
@@ -177,6 +177,7 @@ export default function Home() {
           openAuth={() => setIsAuthOpen(true)}
           openSearchModal={() => setIsSearchOpen(true)}
           openOnboarding={() => setIsOnboardingOpen(true)}
+          onNavigate={handleNavigate}
         />
 
         {/* Dynamic Viewport */}
@@ -186,6 +187,13 @@ export default function Home() {
               profile={profile}
               onNavigate={handleNavigate}
               openOnboarding={() => setIsOnboardingOpen(true)}
+            />
+          )}
+
+          {activeTab === 'vestibulares' && (
+            <VestibularesModule
+              profile={profile}
+              onProfileUpdated={(updated) => setProfile(updated)}
             />
           )}
 

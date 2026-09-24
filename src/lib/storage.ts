@@ -1,4 +1,15 @@
-import { UserProfile, SavedSummary, SavedMindmap, QuizResult, SavedSchedule, LeaderboardUser, GradeLevel, APP_VERSION } from '@/types';
+import { 
+  UserProfile, 
+  SavedSummary, 
+  SavedMindmap, 
+  QuizResult, 
+  SavedSchedule, 
+  LeaderboardUser, 
+  GradeLevel, 
+  APP_VERSION,
+  NotificationItem,
+  EssayCorrectionResult
+} from '@/types';
 import { buildUserExportData } from './security';
 
 const STORAGE_KEYS = {
@@ -9,6 +20,8 @@ const STORAGE_KEYS = {
   QUIZZES: 'estuda_ai_quizzes',
   SCHEDULES: 'estuda_ai_schedules',
   LEADERBOARD: 'estuda_ai_leaderboard',
+  NOTIFICATIONS: 'estuda_ai_notifications',
+  ESSAYS: 'estuda_ai_essays',
   THEME: 'estuda_ai_theme',
 };
 
@@ -34,6 +47,36 @@ const INITIAL_USER: UserProfile = {
   },
 };
 
+const INITIAL_NOTIFICATIONS: NotificationItem[] = [
+  {
+    id: 'notif_v04_welcome',
+    title: 'Plataforma 100% Gratuita (v0.4)',
+    message: 'Bem-vindo ao Estuda AI v0.4! Acesso ilimitado a simulados, resumos e o novo módulo de Vestibulares & Redação com IA!',
+    type: 'system',
+    read: false,
+    createdAt: new Date().toISOString(),
+    linkTab: 'vestibulares'
+  },
+  {
+    id: 'notif_schedule_today',
+    title: 'Lembrete de Estudos Hoje',
+    message: 'Seu cronograma recomenda revisão de Matemática e 1 simulado curto.',
+    type: 'schedule',
+    read: false,
+    createdAt: new Date(Date.now() - 3600000).toISOString(),
+    linkTab: 'schedule'
+  },
+  {
+    id: 'notif_ranking_status',
+    title: 'Ofensiva Mantida!',
+    message: 'Você completou mais um dia de estudos e manteve sua sequência ativa.',
+    type: 'ranking',
+    read: false,
+    createdAt: new Date(Date.now() - 7200000).toISOString(),
+    linkTab: 'leaderboard'
+  }
+];
+
 /**
  * Retrieves the currently active user profile.
  */
@@ -46,7 +89,6 @@ export function getUserProfile(): UserProfile {
       return INITIAL_USER;
     }
     const parsed: UserProfile = JSON.parse(data);
-    // Ensure username field is normalized
     if (!parsed.username && parsed.name) {
       parsed.username = parsed.name;
     }
@@ -139,25 +181,24 @@ export function revokeUserConsent(): UserProfile {
 }
 
 /**
- * Permanently deletes the user account and associated personal data (LGPD Art. 18, VI - Direito ao Esquecimento).
+ * Permanently deletes the user account and associated personal data (LGPD Art. 18, VI).
  */
 export function deleteUserAccount(userId: string): void {
   if (typeof window === 'undefined') return;
   try {
-    // 1. Remove from registered users list
     const users = getRegisteredUsers().filter(u => u.id !== userId);
     localStorage.setItem(STORAGE_KEYS.REGISTERED_USERS, JSON.stringify(users));
 
-    // 2. Remove from leaderboard
     const leaderboard = getLeaderboard().filter(u => u.id !== userId);
     localStorage.setItem(STORAGE_KEYS.LEADERBOARD, JSON.stringify(leaderboard));
 
-    // 3. Clear active profile and local study data
     localStorage.removeItem(STORAGE_KEYS.USER_PROFILE);
     localStorage.removeItem(STORAGE_KEYS.SUMMARIES);
     localStorage.removeItem(STORAGE_KEYS.MINDMAPS);
     localStorage.removeItem(STORAGE_KEYS.QUIZZES);
     localStorage.removeItem(STORAGE_KEYS.SCHEDULES);
+    localStorage.removeItem(STORAGE_KEYS.NOTIFICATIONS);
+    localStorage.removeItem(STORAGE_KEYS.ESSAYS);
   } catch (e) {
     console.error("Erro ao excluir conta de usuário:", e);
   }
@@ -294,13 +335,90 @@ export function saveSchedule(schedule: SavedSchedule): SavedSchedule[] {
 }
 
 // --------------------------------------------------------------------------
+// NOTIFICATIONS SYSTEM (v0.4)
+// --------------------------------------------------------------------------
+export function getNotifications(): NotificationItem[] {
+  if (typeof window === 'undefined') return INITIAL_NOTIFICATIONS;
+  try {
+    const data = localStorage.getItem(STORAGE_KEYS.NOTIFICATIONS);
+    if (!data) {
+      localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(INITIAL_NOTIFICATIONS));
+      return INITIAL_NOTIFICATIONS;
+    }
+    return JSON.parse(data);
+  } catch {
+    return INITIAL_NOTIFICATIONS;
+  }
+}
+
+export function saveNotifications(items: NotificationItem[]): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(items));
+  } catch (e) {
+    console.error("Erro ao salvar notificações:", e);
+  }
+}
+
+export function addNotification(
+  item: Omit<NotificationItem, 'id' | 'createdAt' | 'read'>
+): NotificationItem {
+  const current = getNotifications();
+  const newItem: NotificationItem = {
+    ...item,
+    id: 'notif_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 5),
+    createdAt: new Date().toISOString(),
+    read: false,
+  };
+  const updated = [newItem, ...current];
+  saveNotifications(updated);
+  return newItem;
+}
+
+export function markNotificationAsRead(id: string): NotificationItem[] {
+  const current = getNotifications();
+  const updated = current.map(n => n.id === id ? { ...n, read: true } : n);
+  saveNotifications(updated);
+  return updated;
+}
+
+export function markAllNotificationsAsRead(): NotificationItem[] {
+  const current = getNotifications();
+  const updated = current.map(n => ({ ...n, read: true }));
+  saveNotifications(updated);
+  return updated;
+}
+
+export function clearAllNotifications(): NotificationItem[] {
+  saveNotifications([]);
+  return [];
+}
+
+// --------------------------------------------------------------------------
+// ESSAY CORRECTIONS (v0.4)
+// --------------------------------------------------------------------------
+export function getSavedEssays(): EssayCorrectionResult[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const data = localStorage.getItem(STORAGE_KEYS.ESSAYS);
+    return data ? JSON.parse(data) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveEssayCorrection(essay: EssayCorrectionResult): EssayCorrectionResult[] {
+  const current = getSavedEssays();
+  const updated = [essay, ...current.filter(e => e.id !== essay.id)];
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(STORAGE_KEYS.ESSAYS, JSON.stringify(updated));
+  }
+  return updated;
+}
+
+// --------------------------------------------------------------------------
 // LEADERBOARD (STRICTLY REAL USERS ONLY)
 // --------------------------------------------------------------------------
-
-/**
- * Returns strictly real authenticated/registered users for the leaderboard,
- * sorted by XP descending. No mock/dummy data.
- */
 export function getLeaderboard(): LeaderboardUser[] {
   if (typeof window === 'undefined') return [];
   try {
@@ -309,7 +427,6 @@ export function getLeaderboard(): LeaderboardUser[] {
 
     const userMap = new Map<string, LeaderboardUser>();
 
-    // Add registered users
     for (const u of registeredUsers) {
       if (u && u.id && !LEGACY_MOCK_IDS.has(u.id)) {
         const username = u.username || u.name || 'Estudante';
@@ -326,7 +443,6 @@ export function getLeaderboard(): LeaderboardUser[] {
       }
     }
 
-    // Ensure current active profile is included
     if (currentProfile && currentProfile.id && !LEGACY_MOCK_IDS.has(currentProfile.id)) {
       const currentUsername = currentProfile.username || currentProfile.name || 'Estudante';
       userMap.set(currentProfile.id, {
@@ -351,9 +467,6 @@ export function getLeaderboard(): LeaderboardUser[] {
   }
 }
 
-/**
- * Updates the current user's entry in the leaderboard and persists real user data.
- */
 export function updateLeaderboardCurrentUser(user: UserProfile) {
   if (typeof window === 'undefined') return;
   try {
@@ -371,7 +484,7 @@ export function updateLeaderboardCurrentUser(user: UserProfile) {
     };
 
     const filtered = currentLeaderboard
-      .filter(u => u.id !== user.id && !LEGACY_MOCK_IDS.has(u.id))
+      .filter(u => u.id !== user.id && !LEGACY_MOCK_IDS.has(user.id))
       .map(u => ({ ...u, isCurrentUser: false }));
 
     const updated = [...filtered, userEntry].sort((a, b) => b.xp - a.xp);
