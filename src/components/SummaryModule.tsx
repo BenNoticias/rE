@@ -72,6 +72,9 @@ export function SummaryModule({ profile, selectedSubject = 'matematica', onSaved
       };
 
       setSummaryData(newSummary);
+      saveSummary(newSummary);
+      if (onSavedSummaryAdded) onSavedSummaryAdded(newSummary);
+      setSaved(true);
     } catch (err: any) {
       setError(err.message || 'Erro inesperado ao gerar o resumo.');
     } finally {

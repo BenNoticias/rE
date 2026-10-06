@@ -72,6 +72,9 @@ export function MindmapModule({ profile, selectedSubject = 'matematica', onSaved
       };
 
       setMindmapData(newMindmap);
+      saveMindmap(newMindmap);
+      if (onSavedMindmapAdded) onSavedMindmapAdded(newMindmap);
+      setSaved(true);
       if (newMindmap.nodes.length > 0) {
         setSelectedNode(newMindmap.nodes[0]);
       }
@@ -210,59 +213,95 @@ export function MindmapModule({ profile, selectedSubject = 'matematica', onSaved
               </div>
             </div>
 
-            {/* Visual Node Diagram Render */}
+            {/* Visual Node Diagram Render (Multi-level Depth Layout) */}
             <div 
               className="flex-1 flex items-center justify-center p-4 transition-transform duration-200 overflow-auto"
               style={{ transform: `scale(${zoomLevel})` }}
             >
-              <div className="flex flex-col items-center space-y-8 w-full max-w-lg">
+              <div className="flex flex-col items-center space-y-6 w-full max-w-xl">
                 
-                {/* Root Node */}
+                {/* Level 1: Root Node */}
                 {mindmapData.nodes.filter(n => n.type === 'root').map((rootNode) => (
                   <div
                     key={rootNode.id}
                     onClick={() => setSelectedNode(rootNode)}
-                    className={`p-4 rounded-2xl cursor-pointer text-center transition-all transform hover:scale-105 shadow-xl border-2 ${
+                    className={`p-4 rounded-2xl cursor-pointer text-center transition-all transform hover:scale-105 shadow-2xl border-2 ${
                       selectedNode?.id === rootNode.id
-                        ? 'border-white ring-4 ring-purple-500/50 bg-gradient-to-r from-brand-600 to-purple-600 text-white'
-                        : 'border-brand-500 bg-brand-600/90 text-white'
+                        ? 'border-white ring-4 ring-purple-500/50 bg-gradient-to-r from-brand-600 via-indigo-600 to-purple-600 text-white'
+                        : 'border-brand-400 bg-gradient-to-r from-brand-600 to-purple-600 text-white shadow-brand-500/30'
                     }`}
                   >
-                    <span className="text-xs uppercase font-extrabold tracking-widest text-brand-200 block mb-0.5">
-                      Conceito Raiz
+                    <span className="text-[10px] uppercase font-black tracking-widest text-purple-200 block mb-0.5">
+                      Nível 1 • Conceito Central
                     </span>
                     <h3 className="text-lg font-extrabold">{rootNode.label}</h3>
                   </div>
                 ))}
 
-                {/* Connecting Lines Divider */}
-                <div className="w-0.5 h-6 bg-gradient-to-b from-brand-500 to-purple-500 rounded-full" />
+                {/* Connecting Line Level 1 -> Level 2 */}
+                <div className="w-0.5 h-5 bg-gradient-to-b from-purple-500 to-indigo-500 rounded-full" />
 
-                {/* Sub Nodes Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 w-full">
-                  {mindmapData.nodes.filter(n => n.type !== 'root').map((node) => {
-                    const isSelected = selectedNode?.id === node.id;
+                {/* Level 2: Main Subtopics Grid */}
+                <div className="w-full space-y-5">
+                  {mindmapData.nodes.filter(n => n.type === 'main').map((mainNode) => {
+                    const isMainSelected = selectedNode?.id === mainNode.id;
+                    
+                    // Find child sub nodes linked to this main node via edges or parent ID convention
+                    const childNodes = mindmapData.nodes.filter(n => {
+                      if (n.type !== 'sub') return false;
+                      const hasEdge = mindmapData.edges.some(e => e.source === mainNode.id && e.target === n.id);
+                      const matchesPrefix = n.id.startsWith(mainNode.id + '_');
+                      return hasEdge || matchesPrefix;
+                    });
+
                     return (
-                      <div
-                        key={node.id}
-                        onClick={() => setSelectedNode(node)}
-                        className={`p-3.5 rounded-xl cursor-pointer transition-all border ${
-                          isSelected
-                            ? 'border-purple-400 bg-purple-900/80 text-white shadow-lg ring-2 ring-purple-400/40'
-                            : 'border-slate-700 bg-slate-800/80 text-slate-200 hover:border-slate-500 hover:bg-slate-800'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-slate-700 text-purple-300">
-                            {node.type === 'main' ? 'Ponto Chave' : 'Detalhamento'}
-                          </span>
-                          <Info className="w-3.5 h-3.5 opacity-60" />
+                      <div key={mainNode.id} className="p-3.5 rounded-2xl bg-slate-800/60 border border-slate-700/80 space-y-3">
+                        {/* Main Subtopic Header Box */}
+                        <div
+                          onClick={() => setSelectedNode(mainNode)}
+                          className={`p-3 rounded-xl cursor-pointer transition-all border flex items-center justify-between ${
+                            isMainSelected
+                              ? 'border-purple-400 bg-purple-900/90 text-white shadow-lg ring-2 ring-purple-400/40'
+                              : 'border-purple-500/50 bg-purple-950/40 text-purple-100 hover:border-purple-400 hover:bg-purple-900/40'
+                          }`}
+                        >
+                          <div className="flex items-center space-x-2.5">
+                            <span className="w-2.5 h-2.5 rounded-full bg-purple-400 shrink-0" />
+                            <div>
+                              <span className="text-[10px] uppercase font-bold text-purple-300 block">
+                                Nível 2 • Eixo Principal
+                              </span>
+                              <h4 className="text-sm font-bold text-white">{mainNode.label}</h4>
+                            </div>
+                          </div>
+                          <Info className="w-4 h-4 text-purple-300 shrink-0" />
                         </div>
-                        <h4 className="text-sm font-bold text-white">{node.label}</h4>
-                        {node.description && (
-                          <p className="text-xs text-slate-400 line-clamp-2 mt-1">
-                            {node.description}
-                          </p>
+
+                        {/* Level 3: Sub Nodes (Definitions, Examples, Formulas) */}
+                        {childNodes.length > 0 && (
+                          <div className="pl-4 border-l-2 border-purple-500/30 grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                            {childNodes.map((subNode) => {
+                              const isSubSelected = selectedNode?.id === subNode.id;
+                              return (
+                                <div
+                                  key={subNode.id}
+                                  onClick={() => setSelectedNode(subNode)}
+                                  className={`p-2.5 rounded-xl cursor-pointer text-xs transition-all border ${
+                                    isSubSelected
+                                      ? 'border-amber-400 bg-amber-950/80 text-amber-100 ring-2 ring-amber-400/30 font-semibold'
+                                      : 'border-slate-700 bg-slate-850 text-slate-300 hover:border-slate-500 hover:bg-slate-800'
+                                  }`}
+                                >
+                                  <div className="flex items-center justify-between mb-1">
+                                    <span className="text-[9px] uppercase font-bold text-amber-400">
+                                      Nível 3 • Detalhe / Exemplo
+                                    </span>
+                                  </div>
+                                  <div className="font-medium text-slate-100">{subNode.label}</div>
+                                </div>
+                              );
+                            })}
+                          </div>
                         )}
                       </div>
                     );
@@ -272,8 +311,8 @@ export function MindmapModule({ profile, selectedSubject = 'matematica', onSaved
               </div>
             </div>
 
-            <div className="text-center text-[11px] text-slate-500 pt-2 z-10">
-              Dica: Clique em qualquer caixa acima para ver a explicação técnica completa.
+            <div className="text-center text-[11px] text-slate-400 pt-2 z-10">
+              Visualização Encadeada: Conceito Central → Eixos Principais → Definições e Exemplos. Clique para ver detalhes.
             </div>
 
           </div>

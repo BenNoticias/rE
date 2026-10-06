@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getGeminiClient, safeParseJson } from '@/lib/gemini';
+import { generateGeminiContent, safeParseJson } from '@/lib/gemini';
 
 export async function POST(req: NextRequest) {
   try {
@@ -27,11 +27,11 @@ export async function POST(req: NextRequest) {
       maxScore = 1000;
       rubricPrompt = `
 Siga rigorosamente a Matriz de Referência do ENEM (5 Competências, cada uma valendo de 0 a 200 pontos, em múltiplos de 40):
-1. Competência 1: Domínio da norma culta da língua escrita.
-2. Competência 2: Compreensão da proposta de redação e aplicação dos conceitos das várias áreas do conhecimento.
-3. Competência 3: Seleção, relação, organização e interpretação de informações, fatos, opiniões e argumentos em defesa de um ponto de vista.
-4. Competência 4: Demonstração de conhecimento dos mecanismos linguísticos necessários para a construção da argumentação (coesão).
-5. Competência 5: Elaboração de proposta de intervenção para o problema abordado, respeitando os direitos humanos (Agente, Ação, Meio/Modo, Efeito e Detalhamento).
+1. Competência 1: Domínio da norma culta da língua escrita (ortografia, concordância, regência e pontuação).
+2. Competência 2: Compreensão da proposta de redação e aplicação dos conceitos de várias áreas do conhecimento (repertório legítimo e produtivo).
+3. Competência 3: Seleção, relação, organização e interpretação de informações, fatos, opiniões e argumentos em defesa de um ponto de vista (projeto de texto).
+4. Competência 4: Demonstração de conhecimento dos mecanismos linguísticos necessários para a construção da argumentação (coesão e conectivos).
+5. Competência 5: Elaboração de proposta de intervenção para o problema abordado (Agente, Ação, Meio/Modo, Efeito e Detalhamento).
 `;
     } else if (modelKey === 'fuvest') {
       maxScore = 50;
@@ -65,8 +65,8 @@ Avalie com base na norma culta, estrutura dissertativa-argumentativa, clareza do
     }
 
     const prompt = `
-Você é uma banca examinadora perita e rigorosa de redações para exames vestibulares no Brasil.
-Avalie a seguinte redação para o exame "${modelKey.toUpperCase()}".
+Você é uma banca examinadora perita, didática e motivadora de redações escolares e vestibulares no Brasil.
+Avalie com precisão pedagógica a seguinte redação para o exame "${modelKey.toUpperCase()}".
 
 Proposta / Tema da Redação: "${theme}"
 Título informado: "${essayTitle || 'Sem título'}"
@@ -78,25 +78,30 @@ ${essayText}
 
 ${rubricPrompt}
 
-Instruções para o retorno JSON (Estritamente válido):
+Diretrizes de Linguagem e Didática:
+- A linguagem das devolutivas e feedbacks deve priorizar a clareza, a didática e o encorajamento do aluno da Educação Básica.
+- Explique os erros apontando exatamente o trecho e como corrigi-los.
+
+Instruções para o retorno JSON (Estritamente válido sem qualquer texto fora do JSON):
 1. "finalScore": número com a nota final somada.
 2. "maxScore": ${maxScore}.
 3. "assessmentLevel": string com a classificação geral (ex: "Excelente", "Muito Bom", "Bom", "Regular", "Insuficiente").
-4. "competencies": array de objetos com { "name": string, "score": número, "maxScore": número, "feedback": string com justificativa clara da nota }.
+4. "competencies": array de objetos com { "name": string, "score": número, "maxScore": número, "feedback": string com justificativa clara e didática da nota }.
 5. "strengths": array de pelo menos 2 a 3 strings apontando os principais pontos fortes da redação.
-6. "improvements": array de pelo menos 2 a 3 strings detalhando o que precisa ser aprimorado.
+6. "improvements": array de pelo menos 2 a 3 strings detalhando com clareza o que precisa ser aprimorado.
 7. "suggestedRewrites": array de 1 a 2 objetos com { "original": string com trecho exato da redação, "suggested": string com reescrita aprimorada, "explanation": string explicando a melhoria }.
-8. "generalFeedback": string com parecer pedagógico motivador em tom de mentoria.
+8. "generalFeedback": string com parecer pedagógico didático, claro e motivador em tom de mentoria.
 
 Responda EXCLUSIVAMENTE em formato JSON.
 `;
 
     try {
-      const genAI = getGeminiClient(userApiKey);
-      const model = genAI.getGenerativeModel({ model: 'gemini-3.6-flash' });
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-      const text = response.text() || '';
+      const text = await generateGeminiContent({
+        prompt,
+        userApiKey,
+        temperature: 0.7,
+        responseMimeType: 'application/json',
+      });
 
       const parsed = safeParseJson<any>(text);
       if (parsed && typeof parsed.finalScore === 'number' && Array.isArray(parsed.competencies)) {
@@ -106,7 +111,7 @@ Responda EXCLUSIVAMENTE em formato JSON.
         });
       }
     } catch (aiErr: any) {
-      console.warn("AI Essay evaluation warning, fallback applied:", aiErr?.message);
+      console.warn('AI Essay evaluation warning, fallback applied:', aiErr?.message);
     }
 
     // Dynamic Intelligent Fallback for Essay Evaluation
@@ -126,11 +131,11 @@ Responda EXCLUSIVAMENTE em formato JSON.
       const sum = comp1 + comp2 + comp3 + comp4 + comp5;
       
       fallbackCompetencies = [
-        { name: 'Competência 1: Norma Culta', score: comp1, maxScore: 200, feedback: 'Boa estrutura sintática, com raros desvios de pontuação ou concordância.' },
-        { name: 'Competência 2: Compreensão do Tema & Repertório', score: comp2, maxScore: 200, feedback: 'Excelente abordagem do tema e aplicação pertinente de repertório sociocultural.' },
-        { name: 'Competência 3: Projeto de Texto & Argumentação', score: comp3, maxScore: 200, feedback: 'Projeto de texto defensável com tese bem fundamentada nos parágrafos de desenvolvimento.' },
-        { name: 'Competência 4: Coesão & Conectivos', score: comp4, maxScore: 200, feedback: 'Uso diversificado de operadores argumentativos inter e intraparágrafos.' },
-        { name: 'Competência 5: Proposta de Intervenção', score: comp5, maxScore: 200, feedback: 'Proposta articulada com agente, ação, meio, efeito e detalhamento bem apresentados.' },
+        { name: 'Competência 1: Norma Culta', score: comp1, maxScore: 200, feedback: 'Boa estrutura sintática, com vocabulário formal e raros desvios de pontuação.' },
+        { name: 'Competência 2: Compreensão do Tema & Repertório', score: comp2, maxScore: 200, feedback: 'Excelente abordagem da proposta temática com uso de repertório pertinente.' },
+        { name: 'Competência 3: Projeto de Texto & Argumentação', score: comp3, maxScore: 200, feedback: 'Tese defensável no parágrafo introdutório e boa progressão argumentativa.' },
+        { name: 'Competência 4: Coesão & Conectivos', score: comp4, maxScore: 200, feedback: 'Uso diversificado de elementos coesivos inter e intraparágrafos.' },
+        { name: 'Competência 5: Proposta de Intervenção', score: comp5, maxScore: 200, feedback: 'Proposta detalhada contendo agente, ação, meio, efeito e elemento detalhado.' },
       ];
       calculatedScore = sum;
     } else {
@@ -147,13 +152,13 @@ Responda EXCLUSIVAMENTE em formato JSON.
       assessmentLevel: calculatedScore >= maxScore * 0.85 ? 'Excelente' : 'Muito Bom',
       competencies: fallbackCompetencies,
       strengths: [
-        'Boa articulação de ideias e divisão em parágrafos estruturados.',
-        'Vocabulário formal compatível com a exigência de exames vestibulares.',
-        'Presença de tese clara na introdução do texto.'
+        'Boa articulação de ideias com parágrafos bem delimitados.',
+        'Vocabulário formal e clareza na transmissão dos argumentos.',
+        'Presença de tese bem definida na introdução.'
       ],
       improvements: [
         'Aprofundar a fundamentação teórica nos parágrafos de desenvolvimento.',
-        'Diversificar os conectivos no início das frases para enriquecer a coesão.'
+        'Variar os conectivos no início das frases para enriquecer a coesão.'
       ],
       suggestedRewrites: [
         {
@@ -162,7 +167,7 @@ Responda EXCLUSIVAMENTE em formato JSON.
           explanation: 'Substituição de marcas de informalidade por termos formais e precisos.'
         }
       ],
-      generalFeedback: `Seu texto apresenta uma estrutura dissertativa-argumentativa consistente para o modelo ${modelKey.toUpperCase()}. Continue praticando e aplicando conectivos diversificados para alcançar a pontuação máxima!`
+      generalFeedback: `Seu texto apresenta uma estrutura dissertativa-argumentativa consistente para o modelo ${modelKey.toUpperCase()}. Continue praticando com foco em repertório e coesão!`
     });
 
   } catch (err: any) {

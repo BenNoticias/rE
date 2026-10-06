@@ -303,7 +303,7 @@ export function VestibularesModule({ profile, onProfileUpdated }: VestibularesMo
           <div className="space-y-3 max-w-2xl">
             <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-blue-500/20 text-blue-300 text-xs font-bold border border-blue-400/30">
               <GraduationCap className="w-4 h-4" />
-              <span>Novo Módulo • v0.4 • 100% Gratuito</span>
+              <span>Novo Módulo • v0.6 • 100% Gratuito</span>
             </div>
             
             <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-white">

@@ -203,7 +203,7 @@ export function Dashboard({ profile, onNavigate, openOnboarding }: DashboardProp
               </div>
               <div>
                 <span className="inline-block px-2 py-0.5 rounded bg-amber-500/30 text-amber-300 text-[10px] font-bold uppercase mb-1">
-                  NOVO v0.4
+                  NOVO v0.6
                 </span>
                 <h3 className="text-sm font-bold text-white">
                   Vestibulares & Redação

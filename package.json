@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@google/genai": "^2.27.0",
     "@google/generative-ai": "^0.21.0",
     "@supabase/supabase-js": "^2.48.1",
     "@xyflow/react": "^12.4.2",

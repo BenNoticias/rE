@@ -238,7 +238,7 @@ export function NotificationCenter({ onNavigate }: NotificationCenterProps) {
           {/* Footer */}
           <div className="p-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40 text-center">
             <span className="text-[11px] text-slate-400">
-              Alertas e Notificações em Tempo Real • Estuda AI v0.4
+              Alertas e Notificações em Tempo Real • Estuda AI v0.6
             </span>
           </div>
 

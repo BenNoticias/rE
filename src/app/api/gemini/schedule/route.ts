@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getGeminiClient, getGradeDescription, safeParseJson } from '@/lib/gemini';
+import { generateGeminiContent, getGradeDescription, safeParseJson } from '@/lib/gemini';
 
 export async function POST(req: NextRequest) {
   try {
@@ -7,14 +7,18 @@ export async function POST(req: NextRequest) {
 
     const gradeContext = getGradeDescription(grade || '1_em');
     const prompt = `
-Você é um psicopedagogo e especialista em alta performance nos estudos para alunos da Educação Básica.
-Crie um Cronograma Semanal de Estudos personalizado para um aluno do ${gradeContext}.
+Você é um psicopedagogo e especialista em alta performance e organização de estudos para alunos da Educação Básica no Brasil.
+Crie um Cronograma Semanal de Estudos personalizado, claro e realista para um aluno do ${gradeContext}.
 
-Parâmetros:
+Parâmetros de Estudo:
 - Horas disponíveis por dia: ${availableHours} horas
-- Disciplinas prioritárias/dificuldades: ${weakSubjects.length ? weakSubjects.join(', ') : 'Matemática, Português, Ciências'}
+- Disciplinas prioritárias com maior dificuldade: ${weakSubjects.length ? weakSubjects.join(', ') : 'Matemática, Português, Ciências'}
 
-Responda ESTRITAMENTE em formato JSON com o seguinte formato (sem marcações markdown fora do JSON):
+Diretrizes:
+- Distribuia as disciplinas de forma equilibrada de Segunda a Sábado.
+- Priorize sessões de estudo ativo (Pomodoro, Resolução de Questões, Mapas Mentais e Fichamentos).
+
+Responda ESTRITAMENTE em formato JSON com o seguinte formato (sem marcações fora do JSON):
 {
   "title": "Cronograma Semanal Personalizado",
   "weeklyPlan": [
@@ -23,7 +27,7 @@ Responda ESTRITAMENTE em formato JSON com o seguinte formato (sem marcações ma
       "subjects": [
         {
           "subject": "Matemática",
-          "topic": "Resolução de Problemas e Exercícios",
+          "topic": "Resolução de Problemas e Exercícios Ativos",
           "duration": "1h 30min",
           "technique": "Técnica Pomodoro (25 min estudo / 5 min pausa) + Questões"
         },
@@ -40,9 +44,9 @@ Responda ESTRITAMENTE em formato JSON com o seguinte formato (sem marcações ma
       "subjects": [
         {
           "subject": "Português",
-          "topic": "Gramática e Leitura de Texto",
+          "topic": "Gramática e Interpretação de Texto",
           "duration": "1h 30min",
-          "technique": "Estudo Ativo"
+          "technique": "Análise Sintática e Estudo Ativo"
         }
       ]
     },
@@ -55,18 +59,19 @@ Responda ESTRITAMENTE em formato JSON com o seguinte formato (sem marcações ma
 `;
 
     try {
-      const genAI = getGeminiClient(userApiKey);
-      const model = genAI.getGenerativeModel({ model: 'gemini-3.6-flash' });
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-      const text = response.text() || '';
+      const text = await generateGeminiContent({
+        prompt,
+        userApiKey,
+        temperature: 0.7,
+        responseMimeType: 'application/json',
+      });
 
       const parsed = safeParseJson<any>(text);
       if (parsed && Array.isArray(parsed.weeklyPlan) && parsed.weeklyPlan.length > 0) {
         return NextResponse.json(parsed);
       }
     } catch (aiErr: any) {
-      console.warn("AI schedule generation failed, providing fallback schedule:", aiErr?.message);
+      console.warn('AI schedule generation failed, providing fallback schedule:', aiErr?.message);
     }
 
     return NextResponse.json({

@@ -49,13 +49,13 @@ const INITIAL_USER: UserProfile = {
 
 const INITIAL_NOTIFICATIONS: NotificationItem[] = [
   {
-    id: 'notif_v04_welcome',
-    title: 'Plataforma 100% Gratuita (v0.4)',
-    message: 'Bem-vindo ao Estuda AI v0.4! Acesso ilimitado a simulados, resumos e o novo módulo de Vestibulares & Redação com IA!',
+    id: 'notif_v06_welcome',
+    title: 'Plataforma 100% Gratuita (v0.6)',
+    message: 'Bem-vindo ao Estuda AI v0.6! Histórico completo unificado com filtros por tipo, consulta a redações na íntegra e biblioteca pessoal expandida!',
     type: 'system',
     read: false,
     createdAt: new Date().toISOString(),
-    linkTab: 'vestibulares'
+    linkTab: 'history'
   },
   {
     id: 'notif_schedule_today',
@@ -312,6 +312,15 @@ export function saveQuizResult(quiz: QuizResult): QuizResult[] {
   return updated;
 }
 
+export function deleteQuizResult(id: string): QuizResult[] {
+  const current = getSavedQuizzes();
+  const updated = current.filter(q => q.id !== id);
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(STORAGE_KEYS.QUIZZES, JSON.stringify(updated));
+  }
+  return updated;
+}
+
 // --------------------------------------------------------------------------
 // SCHEDULES
 // --------------------------------------------------------------------------
@@ -328,6 +337,15 @@ export function getSavedSchedules(): SavedSchedule[] {
 export function saveSchedule(schedule: SavedSchedule): SavedSchedule[] {
   const current = getSavedSchedules();
   const updated = [schedule, ...current.filter(s => s.id !== schedule.id)];
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(STORAGE_KEYS.SCHEDULES, JSON.stringify(updated));
+  }
+  return updated;
+}
+
+export function deleteSchedule(id: string): SavedSchedule[] {
+  const current = getSavedSchedules();
+  const updated = current.filter(s => s.id !== id);
   if (typeof window !== 'undefined') {
     localStorage.setItem(STORAGE_KEYS.SCHEDULES, JSON.stringify(updated));
   }
@@ -410,6 +428,15 @@ export function getSavedEssays(): EssayCorrectionResult[] {
 export function saveEssayCorrection(essay: EssayCorrectionResult): EssayCorrectionResult[] {
   const current = getSavedEssays();
   const updated = [essay, ...current.filter(e => e.id !== essay.id)];
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(STORAGE_KEYS.ESSAYS, JSON.stringify(updated));
+  }
+  return updated;
+}
+
+export function deleteEssayCorrection(id: string): EssayCorrectionResult[] {
+  const current = getSavedEssays();
+  const updated = current.filter(e => e.id !== id);
   if (typeof window !== 'undefined') {
     localStorage.setItem(STORAGE_KEYS.ESSAYS, JSON.stringify(updated));
   }
