@@ -31,7 +31,7 @@ export function buildUserExportData(
   return {
     meta: {
       exportedAt: new Date().toISOString(),
-      platform: 'EstudaAI • Plataforma Educacional',
+      platform: 'The Educator • Plataforma Educacional',
       version: APP_VERSION,
       lgpdCompliance: 'Lei Federal 13.709/2018 (Art. 18 - Portabilidade de Dados)',
     },
@@ -75,7 +75,7 @@ export function downloadUserDataAsJson(exportData: ReturnType<typeof buildUserEx
   const downloadAnchor = document.createElement('a');
   downloadAnchor.setAttribute('href', jsonString);
   const usernameSanitized = (exportData.userProfile.username || 'estudante').replace(/[^a-zA-Z0-9_-]/g, '_');
-  downloadAnchor.setAttribute('download', `meus_dados_estuda_ai_${usernameSanitized}.json`);
+  downloadAnchor.setAttribute('download', `meus_dados_the_educator_${usernameSanitized}.json`);
   document.body.appendChild(downloadAnchor);
   downloadAnchor.click();
   downloadAnchor.remove();
@@ -86,12 +86,12 @@ export function downloadUserDataAsJson(exportData: ReturnType<typeof buildUserEx
  */
 export const LEGAL_TEXTS = {
   TERMS_OF_USE: {
-    title: 'Termos de Uso do EstudaAI',
+    title: 'Termos de Uso do The Educator',
     lastUpdate: '24 de Setembro de 2026 (v0.3)',
     sections: [
       {
         heading: '1. Objeto e Finalidade Educacional',
-        content: 'O EstudaAI é uma plataforma de inteligência educacional destinada a apoiar estudantes do Ensino Fundamental II e Ensino Médio em sua rotina de estudos, preparação para o ENEM e vestibulares. O uso da plataforma deve ser estritamente pedagógico e ético.'
+        content: 'O The Educator é uma plataforma de inteligência educacional destinada a apoiar estudantes do Ensino Fundamental II e Ensino Médio em sua rotina de estudos, preparação para o ENEM e vestibulares. O uso da plataforma deve ser estritamente pedagógico e ético.'
       },
       {
         heading: '2. Cadastro e Minimização de Identificação',
@@ -130,7 +130,7 @@ export const LEGAL_TEXTS = {
       },
       {
         heading: '4. Não Compartilhamento de Dados com Terceiros',
-        content: 'O EstudaAI NÃO vende, NÃO aluga e NÃO compartilha seus dados pessoais com terceiros não autorizados, agências de marketing ou corretores de dados. A IA apenas processa as solicitações didáticas sem armazenar seu perfil pessoal para fins de treinamento de terceiros.'
+        content: 'O The Educator NÃO vende, NÃO aluga e NÃO compartilha seus dados pessoais com terceiros não autorizados, agências de marketing ou corretores de dados. A IA apenas processa as solicitações didáticas sem armazenar seu perfil pessoal para fins de treinamento de terceiros.'
       },
       {
         heading: '5. Seus Direitos como Titular (Art. 18 da LGPD)',

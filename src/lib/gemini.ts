@@ -6,10 +6,10 @@ import { GradeLevel, GRADE_OPTIONS } from '@/types';
  * Auto-fallback handles 404 (deprecated models) and 503 (temporary high demand).
  */
 const GEMINI_MODELS = [
+  'gemini-3.8-flash',
+  'gemini-3.5-flash',
   'gemini-3.6-flash',
   'gemini-3.5-flash-lite',
-  'gemini-3.1-flash-lite',
-  'gemini-3.8-flash',
 ];
 
 /**
@@ -52,7 +52,7 @@ export async function generateGeminiContent(options: GenerateOptions): Promise<s
     userApiKey,
     temperature = 0.7,
     responseMimeType,
-    timeoutMs = 30000,
+    timeoutMs = 60000,
   } = options;
 
   const apiKey = (userApiKey && userApiKey.trim().length > 5)
@@ -97,7 +97,7 @@ export async function generateGeminiContent(options: GenerateOptions): Promise<s
   }
 
   // Resilient direct REST API fallback if SDK model loop fails
-  for (const modelName of ['gemini-3.6-flash', 'gemini-3.5-flash-lite']) {
+  for (const modelName of ['gemini-3.8-flash', 'gemini-3.5-flash']) {
     try {
       console.log(`Attempting direct REST API fallback with ${modelName}...`);
       const controller = new AbortController();
@@ -137,9 +137,25 @@ export async function generateGeminiContent(options: GenerateOptions): Promise<s
   throw lastError || new Error('Falha ao conectar com o serviço do Gemini.');
 }
 
+function cleanJsonCandidates(str: string): string {
+  return str
+    .replace(/^```json\s*/i, '')
+    .replace(/^```\s*/i, '')
+    .replace(/\s*```$/i, '')
+    .trim()
+    // Corrige letras ou valores literais desprotegidos (ex: "correctAnswer": C, -> "correctAnswer": "C",)
+    .replace(/:\s*([A-Za-z])\s*([,\r\n}])/g, ': "$1"$2')
+    // Remove caracteres invisíveis de controle
+    .replace(/[\u0000-\u001F\u007F-\u009F]/g, "")
+    // Corrige barras invertidas desnecessárias como de LaTeX (\Delta, \frac, \text)
+    .replace(/\\(?!["\\/bfnrt]|u[0-9a-fA-F]{4})/g, "\\\\")
+    // Remove vírgulas sobressalentes antes de fechamento de chaves ou colchetes
+    .replace(/,\s*([\]}])/g, '$1');
+}
+
 /**
  * Safely parses JSON output from Gemini, handling markdown fences, unescaped LaTeX backslashes,
- * trailing commas, and regex fallback extraction.
+ * unquoted answer letters, trailing commas, and regex fallback extraction.
  */
 export function safeParseJson<T>(text: string): T | null {
   if (!text || typeof text !== 'string') return null;
@@ -155,35 +171,23 @@ export function safeParseJson<T>(text: string): T | null {
   try {
     return JSON.parse(cleaned) as T;
   } catch (e1) {
-    // Step 3: Fix invalid single backslashes emitted in LaTeX or text (\Delta, \text, \right)
+    // Step 3: Parse com sanitização e correção de caracteres
     try {
-      const fixedEscapes = cleaned.replace(/\\(?!["\\/bfnrt]|u[0-9a-fA-F]{4})/g, "\\\\");
-      return JSON.parse(fixedEscapes) as T;
+      const sanitized = cleanJsonCandidates(cleaned);
+      return JSON.parse(sanitized) as T;
     } catch (e2) {
-      // Step 4: Remove control characters or trailing commas if any
-      try {
-        const sanitized = cleaned
-          .replace(/[\u0000-\u001F\u007F-\u009F]/g, "")
-          .replace(/\\(?!["\\/bfnrt]|u[0-9a-fA-F]{4})/g, "\\\\")
-          .replace(/,\s*([\]}])/g, '$1');
-        return JSON.parse(sanitized) as T;
-      } catch (e3) {
-        // Step 5: Regex extraction for JSON objects or arrays
-        const jsonMatch = text.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
-        if (jsonMatch) {
-          try {
-            const sanitizedMatch = jsonMatch[0]
-              .replace(/[\u0000-\u001F\u007F-\u009F]/g, "")
-              .replace(/\\(?!["\\/bfnrt]|u[0-9a-fA-F]{4})/g, "\\\\")
-              .replace(/,\s*([\]}])/g, '$1');
-            return JSON.parse(sanitizedMatch) as T;
-          } catch (err) {
-            console.error("Failed to parse regex-extracted JSON:", err);
-          }
+      // Step 4: Regex extraction para encontrar objeto ou array JSON
+      const jsonMatch = text.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
+      if (jsonMatch) {
+        try {
+          const sanitizedMatch = cleanJsonCandidates(jsonMatch[0]);
+          return JSON.parse(sanitizedMatch) as T;
+        } catch (err) {
+          console.error("Failed to parse regex-extracted JSON:", err);
         }
-        console.error("JSON parse error from Gemini output:", e1);
-        return null;
       }
+      console.error("JSON parse error from Gemini output:", e1);
+      return null;
     }
   }
 }

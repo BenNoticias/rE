@@ -366,7 +366,7 @@ export function SettingsModal({
                   <span>Compromisso de Não Compartilhamento</span>
                 </div>
                 <p className="text-[11px] text-emerald-800 dark:text-emerald-300">
-                  O EstudaAI não compartilha nem vende dados de estudantes com terceiros para fins de marketing ou publicidade. Todos os dados são exclusivamente pedagógicos.
+                  O The Educator não compartilha nem vende dados de estudantes com terceiros para fins de marketing ou publicidade. Todos os dados são exclusivamente pedagógicos.
                 </p>
               </div>
 
@@ -512,7 +512,7 @@ export function SettingsModal({
             </div>
           ) : (
             <div className="text-[11px] text-slate-400 font-mono">
-              EstudaAI {APP_VERSION}
+              The Educator {APP_VERSION}
             </div>
           )}
 

@@ -48,7 +48,7 @@ export function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
             <BookOpen className="w-5 h-5 stroke-[2.5]" />
           </div>
           <span className="text-xl font-extrabold tracking-tight text-white">
-            Estuda<span className="text-blue-500">AI</span>
+            The <span className="text-blue-500">Educator</span>
           </span>
         </button>
 
@@ -89,7 +89,7 @@ export function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
 
         {/* Version Tag */}
         <div className="flex items-center justify-between px-2 text-[11px] text-slate-500">
-          <span>EstudaAI</span>
+          <span>The Educator</span>
           <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-slate-800/60 text-slate-400 border border-slate-800">
             {APP_VERSION}
           </span>

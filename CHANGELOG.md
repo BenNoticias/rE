@@ -1,6 +1,6 @@
-# 📋 Log de Atualizações (Changelog) - Estuda AI
+# 📋 Log de Atualizações (Changelog) - The Educator
 
-Todas as alterações notáveis, melhorias, novos recursos e correções no sistema **Estuda AI** estão documentadas neste arquivo.
+Todas as alterações notáveis, melhorias, novos recursos e correções no sistema **The Educator** estão documentadas neste arquivo.
 
 ---
 

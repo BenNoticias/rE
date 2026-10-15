@@ -1,16 +1,26 @@
 import { createClient } from '@supabase/supabase-js';
-import { UserProfile, LeaderboardUser } from '@/types';
+import { 
+  UserProfile, 
+  LeaderboardUser, 
+  SavedSummary, 
+  SavedMindmap, 
+  QuizResult, 
+  EssayCorrectionResult 
+} from '@/types';
 import { getUserProfile } from './storage';
 
 export function getSupabaseClient() {
-  if (typeof window === 'undefined') return null;
-  const profile = getUserProfile();
+  const profile = typeof window !== 'undefined' ? getUserProfile() : null;
   
-  if (profile && profile.useCustomDb && profile.supabaseUrl && profile.supabaseAnonKey) {
+  // Prioriza as variáveis de ambiente (.env.local); se não houver, usa o perfil customizado
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || (profile?.useCustomDb ? profile?.supabaseUrl : undefined);
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || (profile?.useCustomDb ? profile?.supabaseAnonKey : undefined);
+  
+  if (supabaseUrl && supabaseAnonKey) {
     try {
-      return createClient(profile.supabaseUrl, profile.supabaseAnonKey);
+      return createClient(supabaseUrl, supabaseAnonKey);
     } catch (err) {
-      console.error("Erro ao inicializar cliente Supabase customizado:", err);
+      console.error("Erro ao inicializar cliente Supabase:", err);
       return null;
     }
   }
@@ -95,3 +105,107 @@ export async function fetchSupabaseLeaderboard(): Promise<LeaderboardUser[] | nu
     return null;
   }
 }
+
+export async function syncSummaryToSupabase(summary: SavedSummary, userId?: string): Promise<boolean> {
+  const client = getSupabaseClient();
+  if (!client) return false;
+  try {
+    const { error } = await client.from('summaries').upsert({
+      id: summary.id,
+      user_id: userId || null,
+      title: summary.title,
+      subject: summary.subject,
+      grade: summary.grade,
+      summary_overview: summary.summaryOverview,
+      topics: summary.topics,
+      study_tips: summary.studyTips,
+      created_at: summary.createdAt || new Date().toISOString(),
+    });
+    if (error) console.warn("Aviso ao sincronizar resumo com Supabase:", error.message);
+    return !error;
+  } catch (err) {
+    console.warn("Falha de rede ao sincronizar resumo:", err);
+    return false;
+  }
+}
+
+export async function syncMindmapToSupabase(mindmap: SavedMindmap, userId?: string): Promise<boolean> {
+  const client = getSupabaseClient();
+  if (!client) return false;
+  try {
+    const { error } = await client.from('mindmaps').upsert({
+      id: mindmap.id,
+      user_id: userId || null,
+      title: mindmap.title,
+      subject: mindmap.subject,
+      grade: mindmap.grade,
+      nodes: mindmap.nodes,
+      edges: mindmap.edges,
+      created_at: mindmap.createdAt || new Date().toISOString(),
+    });
+    if (error) console.warn("Aviso ao sincronizar mapa mental com Supabase:", error.message);
+    return !error;
+  } catch (err) {
+    console.warn("Falha de rede ao sincronizar mapa mental:", err);
+    return false;
+  }
+}
+
+export async function syncQuizToSupabase(quiz: QuizResult, userId?: string): Promise<boolean> {
+  const client = getSupabaseClient();
+  if (!client) return false;
+  try {
+    const { error } = await client.from('quizzes').upsert({
+      id: quiz.id,
+      user_id: userId || null,
+      title: quiz.title,
+      subject: quiz.subject,
+      grade: quiz.grade,
+      score: quiz.score,
+      total_questions: quiz.totalQuestions,
+      xp_earned: quiz.xpEarned,
+      questions: quiz.questions,
+      created_at: quiz.createdAt || new Date().toISOString(),
+    });
+    if (error) console.warn("Aviso ao sincronizar simulado com Supabase:", error.message);
+    return !error;
+  } catch (err) {
+    console.warn("Falha de rede ao sincronizar simulado:", err);
+    return false;
+  }
+}
+
+export async function syncEssayToSupabase(essay: EssayCorrectionResult, userId?: string): Promise<boolean> {
+  const client = getSupabaseClient();
+  if (!client) return false;
+  try {
+    const { error } = await client.from('essays').upsert({
+      id: essay.id,
+      user_id: userId || null,
+      title: essay.theme || essay.essayTitle || 'Redação Sem Título',
+      exam_model: essay.examModel,
+      essay_text: essay.essayText,
+      grade_score: essay.finalScore,
+      competencies: essay.competencies,
+      feedback: essay.generalFeedback,
+      created_at: essay.createdAt || new Date().toISOString(),
+    });
+    if (error) console.warn("Aviso ao sincronizar redação com Supabase:", error.message);
+    return !error;
+  } catch (err) {
+    console.warn("Falha de rede ao sincronizar redação:", err);
+    return false;
+  }
+}
+
+export async function deleteRemoteItem(table: 'summaries' | 'mindmaps' | 'quizzes' | 'essays', id: string): Promise<boolean> {
+  const client = getSupabaseClient();
+  if (!client) return false;
+  try {
+    const { error } = await client.from(table).delete().eq('id', id);
+    return !error;
+  } catch {
+    return false;
+  }
+}
+

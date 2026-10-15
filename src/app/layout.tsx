@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import { ThemeProvider } from 'next-themes';
 
 export const metadata: Metadata = {
-  title: 'EstudaAI - Plataforma Inteligente de Estudos para Educação Básica',
+  title: 'The Educator - Plataforma Inteligente de Estudos para Educação Básica',
   description: 'Aplicativo de estudos guiado por Inteligência Artificial (Google Gemini) para Ensino Fundamental e Médio. Resumos, mapas mentais, simulados gamificados e cronogramas.',
 };
 

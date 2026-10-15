@@ -133,7 +133,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
           </div>
           <div>
             <span className="text-xl font-extrabold tracking-tight text-white block leading-none">
-              Estuda<span className="text-blue-400">AI</span>
+              The <span className="text-blue-400">Educator</span>
             </span>
             <span className="text-[10px] uppercase tracking-widest text-slate-400 font-semibold">
               Plataforma de Ensino • Estilo SAS
@@ -406,7 +406,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
       {/* Institutional Footer with Discreet Version Tag & Legal Links */}
       <footer className="py-3 px-6 sm:px-12 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-400 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
         <div className="flex items-center space-x-3">
-          <span>Plataforma EstudaAI • SAS</span>
+          <span>Plataforma The Educator • SAS</span>
           <span>•</span>
           <button
             onClick={(e) => openLegalModal('terms', e)}

@@ -50,7 +50,7 @@ export default function Home() {
   if (!profile) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#051838] text-white font-sans">
-        <div className="animate-pulse font-bold text-lg">Carregando EstudaAI...</div>
+        <div className="animate-pulse font-bold text-lg">Carregando The Educator...</div>
       </div>
     );
   }

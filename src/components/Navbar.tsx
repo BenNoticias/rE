@@ -66,7 +66,7 @@ export function Navbar({
               </div>
               <div className="text-left">
                 <span className="text-xl font-extrabold tracking-tight bg-gradient-to-r from-brand-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                  EstudaAI
+                  The Educator
                 </span>
                 <span className="block text-[10px] uppercase font-semibold text-slate-400 dark:text-slate-500 -mt-1 tracking-wider">
                   Educação Básica & Vestibulares

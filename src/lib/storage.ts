@@ -11,6 +11,14 @@ import {
   EssayCorrectionResult
 } from '@/types';
 import { buildUserExportData } from './security';
+import { 
+  syncUserProfileToSupabase, 
+  syncSummaryToSupabase, 
+  syncMindmapToSupabase, 
+  syncQuizToSupabase, 
+  syncEssayToSupabase,
+  deleteRemoteItem 
+} from './supabase';
 
 const STORAGE_KEYS = {
   USER_PROFILE: 'estuda_ai_user_profile',
@@ -51,7 +59,7 @@ const INITIAL_NOTIFICATIONS: NotificationItem[] = [
   {
     id: 'notif_v06_welcome',
     title: 'Plataforma 100% Gratuita (v0.6)',
-    message: 'Bem-vindo ao Estuda AI v0.6! Histórico completo unificado com filtros por tipo, consulta a redações na íntegra e biblioteca pessoal expandida!',
+    message: 'Bem-vindo ao The Educator v0.6! Histórico completo unificado com filtros por tipo, consulta a redações na íntegra e biblioteca pessoal expandida!',
     type: 'system',
     read: false,
     createdAt: new Date().toISOString(),
@@ -112,6 +120,7 @@ export function saveUserProfile(profile: UserProfile): UserProfile {
     localStorage.setItem(STORAGE_KEYS.USER_PROFILE, JSON.stringify(normalized));
     saveRegisteredUser(normalized);
     updateLeaderboardCurrentUser(normalized);
+    syncUserProfileToSupabase(normalized).catch(() => {});
   }
   return normalized;
 }
@@ -246,6 +255,8 @@ export function saveSummary(summary: SavedSummary): SavedSummary[] {
   const updated = [summary, ...current.filter(s => s.id !== summary.id)];
   if (typeof window !== 'undefined') {
     localStorage.setItem(STORAGE_KEYS.SUMMARIES, JSON.stringify(updated));
+    const profile = getUserProfile();
+    syncSummaryToSupabase(summary, profile?.id).catch(() => {});
   }
   return updated;
 }
@@ -255,6 +266,7 @@ export function deleteSummary(id: string): SavedSummary[] {
   const updated = current.filter(s => s.id !== id);
   if (typeof window !== 'undefined') {
     localStorage.setItem(STORAGE_KEYS.SUMMARIES, JSON.stringify(updated));
+    deleteRemoteItem('summaries', id).catch(() => {});
   }
   return updated;
 }
@@ -277,6 +289,8 @@ export function saveMindmap(mindmap: SavedMindmap): SavedMindmap[] {
   const updated = [mindmap, ...current.filter(m => m.id !== mindmap.id)];
   if (typeof window !== 'undefined') {
     localStorage.setItem(STORAGE_KEYS.MINDMAPS, JSON.stringify(updated));
+    const profile = getUserProfile();
+    syncMindmapToSupabase(mindmap, profile?.id).catch(() => {});
   }
   return updated;
 }
@@ -286,6 +300,7 @@ export function deleteMindmap(id: string): SavedMindmap[] {
   const updated = current.filter(m => m.id !== id);
   if (typeof window !== 'undefined') {
     localStorage.setItem(STORAGE_KEYS.MINDMAPS, JSON.stringify(updated));
+    deleteRemoteItem('mindmaps', id).catch(() => {});
   }
   return updated;
 }
@@ -308,6 +323,8 @@ export function saveQuizResult(quiz: QuizResult): QuizResult[] {
   const updated = [quiz, ...current.filter(q => q.id !== quiz.id)];
   if (typeof window !== 'undefined') {
     localStorage.setItem(STORAGE_KEYS.QUIZZES, JSON.stringify(updated));
+    const profile = getUserProfile();
+    syncQuizToSupabase(quiz, profile?.id).catch(() => {});
   }
   return updated;
 }
@@ -317,6 +334,7 @@ export function deleteQuizResult(id: string): QuizResult[] {
   const updated = current.filter(q => q.id !== id);
   if (typeof window !== 'undefined') {
     localStorage.setItem(STORAGE_KEYS.QUIZZES, JSON.stringify(updated));
+    deleteRemoteItem('quizzes', id).catch(() => {});
   }
   return updated;
 }
@@ -430,6 +448,8 @@ export function saveEssayCorrection(essay: EssayCorrectionResult): EssayCorrecti
   const updated = [essay, ...current.filter(e => e.id !== essay.id)];
   if (typeof window !== 'undefined') {
     localStorage.setItem(STORAGE_KEYS.ESSAYS, JSON.stringify(updated));
+    const profile = getUserProfile();
+    syncEssayToSupabase(essay, profile?.id).catch(() => {});
   }
   return updated;
 }
@@ -439,6 +459,7 @@ export function deleteEssayCorrection(id: string): EssayCorrectionResult[] {
   const updated = current.filter(e => e.id !== id);
   if (typeof window !== 'undefined') {
     localStorage.setItem(STORAGE_KEYS.ESSAYS, JSON.stringify(updated));
+    deleteRemoteItem('essays', id).catch(() => {});
   }
   return updated;
 }
