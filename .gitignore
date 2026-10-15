@@ -15,22 +15,23 @@
 
 # misc
 .DS_Store
-*.pem
 
 # debug
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# local env files & API secrets
+# local env files & API keys protection
 .env
-.env.local
 .env*.local
+.env.local
 .env.development.local
 .env.test.local
 .env.production.local
 *.env
+*.env.*
 !*.env.example
+!.env.example
 
 # secrets, certificates & credentials
 *.pem
@@ -39,6 +40,7 @@ yarn-error.log*
 *.pfx
 credentials.json
 client_secret*.json
+service-account*.json
 *.token
 
 # scratch test files
