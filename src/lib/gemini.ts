@@ -30,7 +30,7 @@ export function getGeminiClient(customApiKey?: string): GoogleGenerativeAI {
  * Retorna o modelo padrão recomendado para a API oficial do Google Gemini
  */
 export function getRecommendedModelName(): string {
-  return process.env.GEMINI_MODEL?.trim() || 'gemini-1.5-flash';
+  return process.env.GEMINI_MODEL?.trim() || 'gemini-3.6-flash';
 }
 
 /**
@@ -54,9 +54,10 @@ export async function generateGeminiJson<T>(
   // Modelos suportados pela API oficial do Google com fallback
   const modelsToTry = [
     primaryModel,
-    'gemini-1.5-flash',
-    'gemini-2.0-flash',
-    'gemini-1.5-pro'
+    'gemini-3.6-flash',
+    'gemini-3.8-flash',
+    'gemini-3.5-flash',
+    'gemini-flash-latest'
   ].filter((item, index, arr) => arr.indexOf(item) === index);
 
   let lastError: any = null;
