@@ -20,7 +20,8 @@ import {
   MapPin,
   Flame,
   Plus,
-  GraduationCap
+  GraduationCap,
+  PenTool
 } from 'lucide-react';
 import { UserProfile, SUBJECTS, SubjectId, GRADE_OPTIONS, APP_VERSION } from '@/types';
 import { getSavedSummaries, getSavedQuizzes, getSavedMindmaps, getSavedSchedules } from '@/lib/storage';
@@ -190,12 +191,38 @@ export function Dashboard({ profile, onNavigate, openOnboarding }: DashboardProp
           </button>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
           
-          {/* Tool 0: Vestibulares & Redação */}
+          {/* Tool 0: Redação IA */}
+          <div 
+            onClick={() => onNavigate('redacao')}
+            className="p-5 rounded-2xl bg-gradient-to-br from-indigo-900 to-blue-950 border border-indigo-700/60 text-white shadow-md hover:shadow-xl transition-all cursor-pointer group flex flex-col justify-between space-y-4"
+          >
+            <div className="space-y-3">
+              <div className="w-10 h-10 rounded-xl bg-indigo-500/20 text-indigo-300 flex items-center justify-center border border-indigo-400/30">
+                <PenTool className="w-5 h-5 text-indigo-300" />
+              </div>
+              <div>
+                <span className="inline-block px-2 py-0.5 rounded bg-emerald-500/30 text-emerald-300 text-[10px] font-bold uppercase mb-1">
+                  NOVO {APP_VERSION}
+                </span>
+                <h3 className="text-sm font-bold text-white">
+                  Redação IA
+                </h3>
+                <p className="text-xs text-indigo-200 mt-1 leading-relaxed">
+                  Correção detalhada por competências (ENEM/FUVEST).
+                </p>
+              </div>
+            </div>
+            <div className="pt-2 text-right">
+              <ArrowRight className="w-4 h-4 text-indigo-300 inline-block group-hover:translate-x-1 transition-transform" />
+            </div>
+          </div>
+
+          {/* Tool 0.5: Vestibulares */}
           <div 
             onClick={() => onNavigate('vestibulares')}
-            className="p-5 rounded-2xl bg-gradient-to-br from-blue-900 to-indigo-950 border border-blue-700/60 text-white shadow-md hover:shadow-xl transition-all cursor-pointer group flex flex-col justify-between space-y-4"
+            className="p-5 rounded-2xl bg-gradient-to-br from-blue-900 to-slate-900 border border-blue-700/60 text-white shadow-md hover:shadow-xl transition-all cursor-pointer group flex flex-col justify-between space-y-4"
           >
             <div className="space-y-3">
               <div className="w-10 h-10 rounded-xl bg-blue-500/20 text-blue-300 flex items-center justify-center border border-blue-400/30">
@@ -203,13 +230,13 @@ export function Dashboard({ profile, onNavigate, openOnboarding }: DashboardProp
               </div>
               <div>
                 <span className="inline-block px-2 py-0.5 rounded bg-amber-500/30 text-amber-300 text-[10px] font-bold uppercase mb-1">
-                  NOVO v0.6
+                  OFICIAL {APP_VERSION}
                 </span>
                 <h3 className="text-sm font-bold text-white">
-                  Vestibulares & Redação
+                  Vestibulares
                 </h3>
                 <p className="text-xs text-blue-200 mt-1 leading-relaxed">
-                  Provas do ENEM/FUVEST e correção de redação por IA.
+                  Banco de questões com gabarito comentado passo a passo.
                 </p>
               </div>
             </div>

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Search, X, BookOpen, MapPin, CheckCircle2, Calendar, ArrowRight } from 'lucide-react';
+import { Search, X, BookOpen, MapPin, CheckCircle2, Calendar, ArrowRight, GraduationCap, PenTool } from 'lucide-react';
 import { SUBJECTS, SubjectId } from '@/types';
 
 interface SearchModalProps {
@@ -32,6 +32,8 @@ export function SearchModal({ isOpen, onClose, onNavigate }: SearchModalProps) {
   );
 
   const quickActions = [
+    { title: 'Corrigir Redação por IA', tab: 'redacao', icon: PenTool },
+    { title: 'Banco de Questões de Vestibulares', tab: 'vestibulares', icon: GraduationCap },
     { title: 'Gerar Resumo em Matemática', tab: 'summary', subject: 'matematica' as SubjectId, icon: BookOpen },
     { title: 'Criar Mapa Mental de História', tab: 'mindmap', subject: 'historia' as SubjectId, icon: MapPin },
     { title: 'Fazer Simulado de Física', tab: 'quiz', subject: 'fisica' as SubjectId, icon: CheckCircle2 },

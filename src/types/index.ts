@@ -1,4 +1,4 @@
-export const APP_VERSION = 'v0.6';
+export const APP_VERSION = 'v0.7';
 
 export type GradeLevel = 
   | '6_ef' 
@@ -63,7 +63,7 @@ export interface UserConsent {
   termsAccepted: boolean;
   privacyAccepted: boolean;
   timestamp: string; // Data e hora do consentimento ISO 8601
-  version: string;   // Versão dos termos (ex: 'v0.4')
+  version: string;   // Versão dos termos (ex: 'v0.7')
 }
 
 export interface UserProfile {
@@ -182,7 +182,7 @@ export interface LeaderboardUser {
 }
 
 // --------------------------------------------------------------------------
-// NOTIFICAÇÕES E ALERTAS DINÂMICOS (v0.4)
+// NOTIFICAÇÕES E ALERTAS DINÂMICOS (v0.7)
 // --------------------------------------------------------------------------
 export type NotificationType = 'schedule' | 'ranking' | 'quiz' | 'essay' | 'system';
 
@@ -198,7 +198,7 @@ export interface NotificationItem {
 }
 
 // --------------------------------------------------------------------------
-// VESTIBULARES E CORREÇÃO DE REDAÇÃO COM GEMINI (v0.4)
+// VESTIBULARES E CORREÇÃO DE REDAÇÃO COM GEMINI (v0.7)
 // --------------------------------------------------------------------------
 export type VestibularExamModel = 'enem' | 'fuvest' | 'unicamp' | 'uerj' | 'ita';
 
@@ -237,6 +237,7 @@ export interface PastExamQuestion {
   exam: string;       // ex: 'ENEM', 'FUVEST', 'UNICAMP', 'UERJ', 'ITA'
   year: number;       // ex: 2024, 2023, 2022
   subject: SubjectId;
+  topic: string;      // Assunto (ex: 'Geometria Espacial', 'Funções', 'Termodinâmica', 'Era Vargas', 'Genética', 'Cinemática')
   area: string;       // ex: 'Matemática e Suas Tecnologias', 'Linguagens'
   questionText: string;
   options: string[];

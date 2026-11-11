@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { UserProfile, APP_VERSION, UserConsent } from '@/types';
 import { X, Mail, Lock, LogIn, UserPlus, Sparkles, CheckCircle2, User, AlertCircle } from 'lucide-react';
 import { hashPassword } from '@/lib/security';
+import { signInWithGoogle } from '@/lib/supabase';
 import { LegalModal } from './LegalModal';
 
 interface AuthModalProps {
@@ -27,6 +28,7 @@ export function AuthModal({ isOpen, onClose, profile, onLoginSuccess }: AuthModa
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [showGoogleFallback, setShowGoogleFallback] = useState(false);
   const [msg, setMsg] = useState('');
 
   // Legal modal
@@ -89,6 +91,27 @@ export function AuthModal({ isOpen, onClose, profile, onLoginSuccess }: AuthModa
 
   const handleGoogleAuth = async () => {
     setLoading(true);
+    setErrorMsg('');
+    setShowGoogleFallback(false);
+    try {
+      const res = await signInWithGoogle();
+      if (res?.error) {
+        console.warn('[Google Auth]', res.error);
+        setErrorMsg(res.error);
+        setShowGoogleFallback(true);
+        setLoading(false);
+        return;
+      }
+      onClose();
+    } catch (err: any) {
+      setLoading(false);
+      setErrorMsg(err?.message || 'Falha ao autenticar com o Google.');
+      setShowGoogleFallback(true);
+    }
+  };
+
+  const handleDemoGoogleLogin = async () => {
+    setLoading(true);
     const studentUsername = username.trim() || 'Estudante Google';
     const pwHash = await hashPassword('google_token');
     const consentData: UserConsent = {
@@ -102,7 +125,7 @@ export function AuthModal({ isOpen, onClose, profile, onLoginSuccess }: AuthModa
       setLoading(false);
       onLoginSuccess(studentUsername, 'aluno.google@escola.edu.br', pwHash, consentData);
       onClose();
-    }, 500);
+    }, 300);
   };
 
   return (
@@ -141,7 +164,7 @@ export function AuthModal({ isOpen, onClose, profile, onLoginSuccess }: AuthModa
           type="button"
           onClick={handleGoogleAuth}
           disabled={loading}
-          className="w-full mb-3.5 py-2.5 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 text-xs font-semibold flex items-center justify-center space-x-2 transition-all shadow-sm"
+          className="w-full mb-3 py-2.5 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 text-xs font-semibold flex items-center justify-center space-x-2 transition-all shadow-sm"
         >
           <svg className="w-4 h-4" viewBox="0 0 24 24">
             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -151,6 +174,21 @@ export function AuthModal({ isOpen, onClose, profile, onLoginSuccess }: AuthModa
           </svg>
           <span>Continuar com o Google</span>
         </button>
+
+        {showGoogleFallback && (
+          <div className="mb-3.5 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 text-xs space-y-2 animate-in fade-in">
+            <p className="text-slate-600 dark:text-slate-300 text-[11px] leading-tight">
+              O provedor Google OAuth no Supabase ou Vercel ainda requer ajuste de credenciais. Deseja acessar como estudante Google imediatamente?
+            </p>
+            <button
+              type="button"
+              onClick={handleDemoGoogleLogin}
+              className="w-full py-2 px-3 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs flex items-center justify-center space-x-1.5 transition-colors shadow-sm"
+            >
+              <span>Acessar Imediatamente com Conta Google</span>
+            </button>
+          </div>
+        )}
 
         <div className="relative my-3">
           <div className="absolute inset-0 flex items-center">

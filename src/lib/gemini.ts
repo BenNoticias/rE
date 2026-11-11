@@ -1,26 +1,103 @@
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { GradeLevel, GRADE_OPTIONS } from '@/types';
 
 /**
- * List of available Gemini models in order of preference.
- * Auto-fallback handles 404 (deprecated models) and 503 (temporary high demand).
+ * Obtém a chave da API do Gemini priorizando:
+ * 1. Chave personalizada enviada pelo usuário na requisição
+ * 2. process.env.GEMINI_API_KEY (Ambiente de Produção / Vercel)
+ * 3. process.env.NEXT_PUBLIC_GEMINI_API_KEY (Legado / Fallback)
  */
-const GEMINI_MODELS = [
-  'gemini-3.8-flash',
-  'gemini-3.5-flash',
-  'gemini-3.6-flash',
-  'gemini-3.5-flash-lite',
-];
+export function getGeminiApiKey(customApiKey?: string): string {
+  if (customApiKey && customApiKey.trim().length > 5) {
+    return customApiKey.trim();
+  }
+  const envKey = process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY || '';
+  return envKey.trim();
+}
 
 /**
- * Returns an instance of GoogleGenAI initialized with user custom key or environment variable.
+ * Inicializa o cliente do Google Generative AI
  */
-export function getGeminiClient(customApiKey?: string): GoogleGenAI {
-  const apiKey = (customApiKey && customApiKey.trim().length > 5)
-    ? customApiKey.trim()
-    : process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY || '';
+export function getGeminiClient(customApiKey?: string): GoogleGenerativeAI {
+  const apiKey = getGeminiApiKey(customApiKey);
+  if (!apiKey) {
+    throw new Error('API Key do Gemini não encontrada. Configure a variável GEMINI_API_KEY no arquivo .env.local ou nas variáveis da Vercel.');
+  }
+  return new GoogleGenerativeAI(apiKey);
+}
 
-  return new GoogleGenAI({ apiKey });
+/**
+ * Retorna o modelo padrão recomendado para a API oficial do Google Gemini
+ */
+export function getRecommendedModelName(): string {
+  return process.env.GEMINI_MODEL?.trim() || 'gemini-1.5-flash';
+}
+
+/**
+ * Executa uma chamada à API do Gemini com fallback entre modelos oficiais
+ * e garante retorno estruturado em JSON.
+ */
+export async function generateGeminiJson<T>(
+  prompt: string,
+  customApiKey?: string,
+  preferredModel?: string
+): Promise<T | null> {
+  const apiKey = getGeminiApiKey(customApiKey);
+  if (!apiKey) {
+    console.warn('[Gemini API] Nenhuma chave de API fornecida em process.env.GEMINI_API_KEY.');
+    return null;
+  }
+
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const primaryModel = preferredModel || getRecommendedModelName();
+  
+  // Modelos suportados pela API oficial do Google com fallback
+  const modelsToTry = [
+    primaryModel,
+    'gemini-1.5-flash',
+    'gemini-2.0-flash',
+    'gemini-1.5-pro'
+  ].filter((item, index, arr) => arr.indexOf(item) === index);
+
+  let lastError: any = null;
+
+  for (const modelName of modelsToTry) {
+    try {
+      const model = genAI.getGenerativeModel({
+        model: modelName,
+        generationConfig: {
+          responseMimeType: 'application/json',
+          temperature: 0.4,
+        },
+      });
+
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      const text = response.text() || '';
+
+      const parsed = safeParseJson<T>(text);
+      if (parsed) {
+        return parsed;
+      }
+    } catch (err: any) {
+      lastError = err;
+      console.warn(`[Gemini API] Falha no modelo "${modelName}":`, err?.message || err);
+      // Erro irrecuperável de credenciais: interrompe tentativas
+      if (
+        err?.message?.includes('API_KEY_INVALID') || 
+        err?.message?.includes('API key not valid') ||
+        err?.status === 400 && err?.message?.includes('API key')
+      ) {
+        break;
+      }
+    }
+  }
+
+  if (lastError) {
+    console.error('[Gemini API] Todas as tentativas de geração falharam:', lastError?.message || lastError);
+  }
+
+  return null;
 }
 
 export function getGradeDescription(grade: GradeLevel): string {
@@ -32,162 +109,62 @@ export function getGradeDescription(grade: GradeLevel): string {
   return `${info.label} (${info.description}). Use rigor conceitual e terminologia científica adequada ao Ensino Médio, com foco em aprovação em exames nacionais (ENEM), vestibulares e alta performance.`;
 }
 
-export interface GenerateOptions {
-  prompt: string;
-  systemInstruction?: string;
-  userApiKey?: string;
-  temperature?: number;
-  responseMimeType?: string;
-  timeoutMs?: number;
-}
-
 /**
- * Calls Gemini API via strictly @google/genai SDK with multi-model fallback (handling 503/404),
- * custom timeouts, REST HTTP fallback, and robust error handling.
- */
-export async function generateGeminiContent(options: GenerateOptions): Promise<string> {
-  const {
-    prompt,
-    systemInstruction,
-    userApiKey,
-    temperature = 0.7,
-    responseMimeType,
-    timeoutMs = 60000,
-  } = options;
-
-  const apiKey = (userApiKey && userApiKey.trim().length > 5)
-    ? userApiKey.trim()
-    : process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY || '';
-
-  if (!apiKey) {
-    throw new Error('Chave de API do Gemini não configurada.');
-  }
-
-  const ai = new GoogleGenAI({ apiKey });
-  let lastError: any = null;
-
-  // Attempt generation using candidate models
-  for (const modelName of GEMINI_MODELS) {
-    try {
-      const apiCall = ai.models.generateContent({
-        model: modelName,
-        contents: prompt,
-        config: {
-          temperature,
-          systemInstruction,
-          responseMimeType,
-        },
-      });
-
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error(`Timeout na chamada do modelo ${modelName} (${timeoutMs}ms)`)), timeoutMs);
-      });
-
-      const response = await Promise.race([apiCall, timeoutPromise]);
-      const responseText = response.text;
-
-      if (responseText && responseText.trim().length > 0) {
-        return responseText;
-      }
-    } catch (err: any) {
-      lastError = err;
-      console.warn(`[Gemini SDK model ${modelName} failed]:`, err?.message || err);
-      // Continue to next model if 404 (not found/deprecated) or 503 (high demand)
-    }
-  }
-
-  // Resilient direct REST API fallback if SDK model loop fails
-  for (const modelName of ['gemini-3.8-flash', 'gemini-3.5-flash']) {
-    try {
-      console.log(`Attempting direct REST API fallback with ${modelName}...`);
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), timeoutMs);
-
-      const restRes = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          signal: controller.signal,
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: {
-              temperature,
-              responseMimeType,
-            },
-            systemInstruction: systemInstruction ? { parts: [{ text: systemInstruction }] } : undefined,
-          }),
-        }
-      );
-
-      clearTimeout(timer);
-
-      if (restRes.ok) {
-        const data = await restRes.json();
-        const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (text && text.trim().length > 0) {
-          return text;
-        }
-      }
-    } catch (restErr: any) {
-      console.error(`Gemini REST API fallback with ${modelName} failed:`, restErr?.message || restErr);
-    }
-  }
-
-  throw lastError || new Error('Falha ao conectar com o serviço do Gemini.');
-}
-
-function cleanJsonCandidates(str: string): string {
-  return str
-    .replace(/^```json\s*/i, '')
-    .replace(/^```\s*/i, '')
-    .replace(/\s*```$/i, '')
-    .trim()
-    // Corrige letras ou valores literais desprotegidos (ex: "correctAnswer": C, -> "correctAnswer": "C",)
-    .replace(/:\s*([A-Za-z])\s*([,\r\n}])/g, ': "$1"$2')
-    // Remove caracteres invisíveis de controle
-    .replace(/[\u0000-\u001F\u007F-\u009F]/g, "")
-    // Corrige barras invertidas desnecessárias como de LaTeX (\Delta, \frac, \text)
-    .replace(/\\(?!["\\/bfnrt]|u[0-9a-fA-F]{4})/g, "\\\\")
-    // Remove vírgulas sobressalentes antes de fechamento de chaves ou colchetes
-    .replace(/,\s*([\]}])/g, '$1');
-}
-
-/**
- * Safely parses JSON output from Gemini, handling markdown fences, unescaped LaTeX backslashes,
- * unquoted answer letters, trailing commas, and regex fallback extraction.
+ * Faz o parse seguro do retorno em JSON gerado pelo Gemini, tratando blocos de código
+ * markdown, caracteres residuais e delimitadores.
  */
 export function safeParseJson<T>(text: string): T | null {
   if (!text || typeof text !== 'string') return null;
 
-  // Step 1: Clean markdown code blocks
-  let cleaned = text
+  // 1. Limpeza inicial de blocos markdown
+  const cleaned = text
     .replace(/^```json\s*/i, '')
     .replace(/^```\s*/i, '')
     .replace(/\s*```$/i, '')
     .trim();
 
-  // Step 2: Direct JSON parse
+  // Tentativa direta
   try {
     return JSON.parse(cleaned) as T;
-  } catch (e1) {
-    // Step 3: Parse com sanitização e correção de caracteres
-    try {
-      const sanitized = cleanJsonCandidates(cleaned);
-      return JSON.parse(sanitized) as T;
-    } catch (e2) {
-      // Step 4: Regex extraction para encontrar objeto ou array JSON
-      const jsonMatch = text.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
-      if (jsonMatch) {
-        try {
-          const sanitizedMatch = cleanJsonCandidates(jsonMatch[0]);
-          return JSON.parse(sanitizedMatch) as T;
-        } catch (err) {
-          console.error("Failed to parse regex-extracted JSON:", err);
-        }
-      }
-      console.error("JSON parse error from Gemini output:", e1);
-      return null;
-    }
+  } catch {
+    // Continua para extração
   }
+
+  // 2. Extração delimitada pelo primeiro e último caractere de JSON { ... } ou [ ... ]
+  try {
+    const firstBrace = cleaned.indexOf('{');
+    const lastBrace = cleaned.lastIndexOf('}');
+    const firstBracket = cleaned.indexOf('[');
+    const lastBracket = cleaned.lastIndexOf(']');
+
+    let start = -1;
+    let end = -1;
+
+    if (firstBrace !== -1 && (firstBracket === -1 || firstBrace < firstBracket)) {
+      start = firstBrace;
+      end = lastBrace;
+    } else if (firstBracket !== -1) {
+      start = firstBracket;
+      end = lastBracket;
+    }
+
+    if (start !== -1 && end !== -1 && end > start) {
+      const extracted = cleaned.substring(start, end + 1);
+      return JSON.parse(extracted) as T;
+    }
+  } catch (extractErr) {
+    // Ignora e tenta regex
+  }
+
+  // 3. Fallback com expressão regular
+  try {
+    const jsonMatch = text.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
+    if (jsonMatch) {
+      return JSON.parse(jsonMatch[0]) as T;
+    }
+  } catch (regexErr) {
+    console.error('[safeParseJson] Erro ao analisar JSON gerado pelo Gemini:', regexErr);
+  }
+
+  return null;
 }

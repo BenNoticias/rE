@@ -310,7 +310,7 @@ export function SettingsModal({
                   <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-800">
                     <span className="text-[10px] text-slate-400 uppercase font-bold block">Consentimento</span>
                     <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
-                      {consentRevokedState ? 'Revogado' : 'Ativo (v0.3)'}
+                      {consentRevokedState ? 'Revogado' : `Ativo (${APP_VERSION})`}
                     </span>
                   </div>
                 </div>
@@ -366,7 +366,7 @@ export function SettingsModal({
                   <span>Compromisso de Não Compartilhamento</span>
                 </div>
                 <p className="text-[11px] text-emerald-800 dark:text-emerald-300">
-                  O The Educator não compartilha nem vende dados de estudantes com terceiros para fins de marketing ou publicidade. Todos os dados são exclusivamente pedagógicos.
+                  O EstudaAI não compartilha nem vende dados de estudantes com terceiros para fins de marketing ou publicidade. Todos os dados são exclusivamente pedagógicos.
                 </p>
               </div>
 
@@ -512,7 +512,7 @@ export function SettingsModal({
             </div>
           ) : (
             <div className="text-[11px] text-slate-400 font-mono">
-              The Educator {APP_VERSION}
+              EstudaAI {APP_VERSION}
             </div>
           )}
 

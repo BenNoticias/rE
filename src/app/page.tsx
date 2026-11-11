@@ -11,6 +11,7 @@ import { ScheduleModule } from '@/components/ScheduleModule';
 import { LeaderboardModule } from '@/components/LeaderboardModule';
 import { HistoryModule } from '@/components/HistoryModule';
 import { VestibularesModule } from '@/components/VestibularesModule';
+import { RedacaoModule } from '@/components/RedacaoModule';
 import { OnboardingModal } from '@/components/OnboardingModal';
 import { SettingsModal } from '@/components/SettingsModal';
 import { AuthModal } from '@/components/AuthModal';
@@ -19,6 +20,7 @@ import { LoginPage } from '@/components/LoginPage';
 
 import { UserProfile, SubjectId, GradeLevel, UserConsent, APP_VERSION } from '@/types';
 import { getUserProfile, saveUserProfile, getRegisteredUsers } from '@/lib/storage';
+import { getSupabaseClient, syncUserProfileToSupabase } from '@/lib/supabase';
 
 export default function Home() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -32,6 +34,43 @@ export default function Home() {
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
+  const handleGoogleSessionUser = (user: any) => {
+    const userEmail = user.email || '';
+    const fullName = user.user_metadata?.full_name || user.user_metadata?.name || userEmail.split('@')[0] || 'Estudante';
+    const registered = getRegisteredUsers();
+    const existing = registered.find(u => u.email && u.email.toLowerCase() === userEmail.toLowerCase());
+
+    const updated: UserProfile = existing ? {
+      ...existing,
+      id: user.id || existing.id,
+      username: existing.username || fullName,
+      name: existing.name || fullName,
+      email: userEmail,
+    } : {
+      id: user.id || ('user_' + Date.now().toString(36)),
+      username: fullName,
+      name: fullName,
+      email: userEmail,
+      grade: '1_em',
+      xp: 150,
+      streak: 1,
+      level: 1,
+      consent: {
+        termsAccepted: true,
+        privacyAccepted: true,
+        timestamp: new Date().toISOString(),
+        version: APP_VERSION,
+      },
+      createdAt: new Date().toISOString(),
+      useCustomDb: false,
+    };
+
+    setProfile(updated);
+    saveUserProfile(updated);
+    syncUserProfileToSupabase(updated);
+    setIsAuthenticated(true);
+  };
+
   useEffect(() => {
     const loadedProfile = getUserProfile();
     setProfile(loadedProfile);
@@ -44,13 +83,36 @@ export default function Home() {
       }
     };
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+
+    // Supabase Auth listener para login com Google e sincronização de sessão
+    let authSubscription: any = null;
+    const supabase = getSupabaseClient();
+
+    if (supabase) {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session?.user) {
+          handleGoogleSessionUser(session.user);
+        }
+      });
+
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+        if ((event === 'SIGNED_IN' || event === 'USER_UPDATED') && session?.user) {
+          handleGoogleSessionUser(session.user);
+        }
+      });
+      authSubscription = subscription;
+    }
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      if (authSubscription) authSubscription.unsubscribe();
+    };
   }, []);
 
   if (!profile) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#051838] text-white font-sans">
-        <div className="animate-pulse font-bold text-lg">Carregando The Educator...</div>
+        <div className="animate-pulse font-bold text-lg">Carregando EstudaAI...</div>
       </div>
     );
   }
@@ -97,6 +159,7 @@ export default function Home() {
 
     setProfile(updated);
     saveUserProfile(updated);
+    syncUserProfileToSupabase(updated);
     setIsAuthenticated(true);
   };
 
@@ -187,6 +250,13 @@ export default function Home() {
               profile={profile}
               onNavigate={handleNavigate}
               openOnboarding={() => setIsOnboardingOpen(true)}
+            />
+          )}
+
+          {activeTab === 'redacao' && (
+            <RedacaoModule
+              profile={profile}
+              onProfileUpdated={(updated) => setProfile(updated)}
             />
           )}
 

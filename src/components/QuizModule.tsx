@@ -29,8 +29,6 @@ interface QuizModuleProps {
 export function QuizModule({ profile, selectedSubject = 'matematica', onProfileUpdated, onQuizCompleted }: QuizModuleProps) {
   const [subject, setSubject] = useState<SubjectId>(selectedSubject);
   const [topic, setTopic] = useState('');
-  const [targetingMode, setTargetingMode] = useState<'basic' | 'advanced'>('basic');
-  const [syllabusText, setSyllabusText] = useState('');
   const [questionCount, setQuestionCount] = useState(5);
   const [loading, setLoading] = useState(false);
   const [quizData, setQuizData] = useState<{ title: string; questions: QuizQuestion[] } | null>(null);
@@ -76,8 +74,6 @@ export function QuizModule({ profile, selectedSubject = 'matematica', onProfileU
           subject: currentSubjectObj.name,
           grade: profile.grade,
           topic: topic.trim(),
-          targetingMode,
-          syllabusText: syllabusText.trim(),
           questionCount,
           userApiKey: profile.customGeminiKey,
         }),
@@ -198,89 +194,22 @@ export function QuizModule({ profile, selectedSubject = 'matematica', onProfileU
 
       {/* Start Config Form */}
       {!quizData && (
-        <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-          {/* Direcionamento de Conteúdo Header & Options */}
-          <div>
-            <label className="block text-sm font-bold text-slate-800 dark:text-slate-200 mb-2">
-              Nível de Direcionamento do Conteúdo:
-            </label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => setTargetingMode('basic')}
-                className={`p-3 rounded-xl border text-left transition-all flex items-start space-x-3 ${
-                  targetingMode === 'basic'
-                    ? 'border-emerald-500 bg-emerald-50/80 dark:bg-emerald-950/50 ring-2 ring-emerald-500/20 text-emerald-900 dark:text-emerald-100 font-semibold'
-                    : 'border-slate-200 dark:border-slate-700 bg-slate-50/40 dark:bg-slate-800/40 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-                }`}
-              >
-                <div className={`w-4 h-4 rounded-full border-2 mt-0.5 flex items-center justify-center shrink-0 ${
-                  targetingMode === 'basic' ? 'border-emerald-600 bg-emerald-600' : 'border-slate-400'
-                }`}>
-                  {targetingMode === 'basic' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
-                </div>
-                <div>
-                  <span className="text-xs font-bold block">Básico</span>
-                  <span className="text-[11px] text-slate-500 dark:text-slate-400 block font-normal">
-                    Apenas o nome do tópico ou assunto geral.
-                  </span>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setTargetingMode('advanced')}
-                className={`p-3 rounded-xl border text-left transition-all flex items-start space-x-3 ${
-                  targetingMode === 'advanced'
-                    ? 'border-emerald-500 bg-emerald-50/80 dark:bg-emerald-950/50 ring-2 ring-emerald-500/20 text-emerald-900 dark:text-emerald-100 font-semibold'
-                    : 'border-slate-200 dark:border-slate-700 bg-slate-50/40 dark:bg-slate-800/40 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-                }`}
-              >
-                <div className={`w-4 h-4 rounded-full border-2 mt-0.5 flex items-center justify-center shrink-0 ${
-                  targetingMode === 'advanced' ? 'border-emerald-600 bg-emerald-600' : 'border-slate-400'
-                }`}>
-                  {targetingMode === 'advanced' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
-                </div>
-                <div>
-                  <span className="text-xs font-bold block">Aprofundado / Roteiro</span>
-                  <span className="text-[11px] text-slate-500 dark:text-slate-400 block font-normal">
-                    Roteiro detalhado dos tópicos a serem cobrados.
-                  </span>
-                </div>
-              </button>
-            </div>
-          </div>
-
+        <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
           <form onSubmit={handleStartQuiz} className="space-y-4">
             <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                Nome do Tópico / Assunto Principal:
+              <label className="block text-sm font-bold text-slate-800 dark:text-slate-200 mb-1.5">
+                Assunto Específico do Simulado (Opcional):
               </label>
               <input
                 type="text"
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
-                placeholder={`Ex: ${subject === 'quimica' ? 'Química Orgânica & Reações' : subject === 'matematica' ? 'Geometria Espacial & Volume' : `Tópicos de ${currentSubjectObj.name}`}`}
+                placeholder={`Ex: Geral de ${currentSubjectObj.name}, Fórmulas ou Tópicos do ENEM`}
                 className="w-full px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
               />
             </div>
 
-            {targetingMode === 'advanced' && (
-              <div className="animate-in fade-in space-y-1.5">
-                <label className="block text-xs font-bold text-emerald-700 dark:text-emerald-400 flex items-center space-x-1">
-                  <span>Roteiro Detalhado do Conteúdo (Direcionamento Específico):</span>
-                </label>
-                <textarea
-                  value={syllabusText}
-                  onChange={(e) => setSyllabusText(e.target.value)}
-                  rows={3}
-                  placeholder="Ex: Foco em reações endotérmicas e exotérmicas, interpretação de gráficos de entalpia (ΔH), energia de ativação e catalisadores..."
-                  className="w-full px-4 py-3 rounded-xl border border-emerald-300 dark:border-emerald-800 bg-emerald-50/30 dark:bg-emerald-950/20 text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
-                />
-              </div>
-            )}
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                   Quantidade de Questões:
@@ -288,11 +217,11 @@ export function QuizModule({ profile, selectedSubject = 'matematica', onProfileU
                 <select
                   value={questionCount}
                   onChange={(e) => setQuestionCount(Number(e.target.value))}
-                  className="w-full px-3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-emerald-500 outline-none cursor-pointer"
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-emerald-500 outline-none"
                 >
                   <option value={3}>3 Questões (Rápido)</option>
-                  <option value={5}>5 Questões (Padrão ENEM)</option>
-                  <option value={10}>10 Questões (Simulado Completo)</option>
+                  <option value={5}>5 Questões (Padrão)</option>
+                  <option value={10}>10 Questões (Completo)</option>
                 </select>
               </div>
 

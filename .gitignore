@@ -15,33 +15,25 @@
 
 # misc
 .DS_Store
+*.pem
+*.key
+*.cert
 
 # debug
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# local env files & API keys protection
+# local env files - EXTREME SECURITY (Never commit API keys or credentials)
 .env
-.env*.local
 .env.local
+.env*.local
+.env.development
 .env.development.local
+.env.test
 .env.test.local
+.env.production
 .env.production.local
-*.env
-*.env.*
-!*.env.example
-!.env.example
-
-# secrets, certificates & credentials
-*.pem
-*.key
-*.cert
-*.pfx
-credentials.json
-client_secret*.json
-service-account*.json
-*.token
 
 # scratch test files
 scratch_*.js

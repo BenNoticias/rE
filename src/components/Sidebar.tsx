@@ -10,7 +10,8 @@ import {
   Trophy, 
   History, 
   Home,
-  GraduationCap
+  GraduationCap,
+  PenTool
 } from 'lucide-react';
 import { APP_VERSION } from '@/types';
 
@@ -24,7 +25,8 @@ interface SidebarProps {
 export function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
   const menuItems = [
     { id: 'dashboard', label: 'Início', icon: Home },
-    { id: 'vestibulares', label: 'Vestibulares & Redação', icon: GraduationCap },
+    { id: 'redacao', label: 'Redação', icon: PenTool },
+    { id: 'vestibulares', label: 'Vestibulares', icon: GraduationCap },
     { id: 'summary', label: 'Resumos', icon: BookOpen },
     { id: 'mindmap', label: 'Mapas Mentais', icon: MapPin },
     { id: 'quiz', label: 'Simulados', icon: CheckCircle2 },
@@ -48,7 +50,7 @@ export function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
             <BookOpen className="w-5 h-5 stroke-[2.5]" />
           </div>
           <span className="text-xl font-extrabold tracking-tight text-white">
-            The <span className="text-blue-500">Educator</span>
+            Estuda<span className="text-blue-500">AI</span>
           </span>
         </button>
 
@@ -89,7 +91,7 @@ export function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
 
         {/* Version Tag */}
         <div className="flex items-center justify-between px-2 text-[11px] text-slate-500">
-          <span>The Educator</span>
+          <span>EstudaAI</span>
           <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-slate-800/60 text-slate-400 border border-slate-800">
             {APP_VERSION}
           </span>

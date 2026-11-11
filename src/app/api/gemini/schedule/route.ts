@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { generateGeminiContent, getGradeDescription, safeParseJson } from '@/lib/gemini';
+import { generateGeminiJson, getGradeDescription } from '@/lib/gemini';
 
 export async function POST(req: NextRequest) {
   try {
@@ -7,18 +7,14 @@ export async function POST(req: NextRequest) {
 
     const gradeContext = getGradeDescription(grade || '1_em');
     const prompt = `
-Você é um psicopedagogo e especialista em alta performance e organização de estudos para alunos da Educação Básica no Brasil.
-Crie um Cronograma Semanal de Estudos personalizado, claro e realista para um aluno do ${gradeContext}.
+Você é um psicopedagogo e especialista em alta performance nos estudos para alunos da Educação Básica.
+Crie um Cronograma Semanal de Estudos personalizado para um aluno do ${gradeContext}.
 
-Parâmetros de Estudo:
+Parâmetros:
 - Horas disponíveis por dia: ${availableHours} horas
-- Disciplinas prioritárias com maior dificuldade: ${weakSubjects.length ? weakSubjects.join(', ') : 'Matemática, Português, Ciências'}
+- Disciplinas prioritárias/dificuldades: ${weakSubjects.length ? weakSubjects.join(', ') : 'Matemática, Português, Ciências'}
 
-Diretrizes:
-- Distribuia as disciplinas de forma equilibrada de Segunda a Sábado.
-- Priorize sessões de estudo ativo (Pomodoro, Resolução de Questões, Mapas Mentais e Fichamentos).
-
-Responda ESTRITAMENTE em formato JSON com o seguinte formato (sem marcações fora do JSON):
+Responda ESTRITAMENTE em formato JSON com o seguinte formato:
 {
   "title": "Cronograma Semanal Personalizado",
   "weeklyPlan": [
@@ -27,7 +23,7 @@ Responda ESTRITAMENTE em formato JSON com o seguinte formato (sem marcações fo
       "subjects": [
         {
           "subject": "Matemática",
-          "topic": "Resolução de Problemas e Exercícios Ativos",
+          "topic": "Resolução de Problemas e Exercícios",
           "duration": "1h 30min",
           "technique": "Técnica Pomodoro (25 min estudo / 5 min pausa) + Questões"
         },
@@ -44,9 +40,9 @@ Responda ESTRITAMENTE em formato JSON com o seguinte formato (sem marcações fo
       "subjects": [
         {
           "subject": "Português",
-          "topic": "Gramática e Interpretação de Texto",
+          "topic": "Gramática e Leitura de Texto",
           "duration": "1h 30min",
-          "technique": "Análise Sintática e Estudo Ativo"
+          "technique": "Estudo Ativo"
         }
       ]
     },
@@ -58,20 +54,10 @@ Responda ESTRITAMENTE em formato JSON com o seguinte formato (sem marcações fo
 }
 `;
 
-    try {
-      const text = await generateGeminiContent({
-        prompt,
-        userApiKey,
-        temperature: 0.7,
-        responseMimeType: 'application/json',
-      });
+    const parsed = await generateGeminiJson<any>(prompt, userApiKey);
 
-      const parsed = safeParseJson<any>(text);
-      if (parsed && Array.isArray(parsed.weeklyPlan) && parsed.weeklyPlan.length > 0) {
-        return NextResponse.json(parsed);
-      }
-    } catch (aiErr: any) {
-      console.warn('AI schedule generation failed, providing fallback schedule:', aiErr?.message);
+    if (parsed && Array.isArray(parsed.weeklyPlan) && parsed.weeklyPlan.length > 0) {
+      return NextResponse.json(parsed);
     }
 
     return NextResponse.json({
@@ -108,19 +94,22 @@ Responda ESTRITAMENTE em formato JSON com o seguinte formato (sem marcações fo
         {
           dayName: "Sexta-feira",
           subjects: [
-            { subject: "Simulado Semanal", topic: "Questões Múltipla Escolha (Todas as Matérias)", duration: "2h", technique: "Simulação de Prova sem Consulta" }
+            { subject: "Filosofia & Sociologia", topic: "Pensadores Contemporâneos e Temas Sociais", duration: "1h", technique: "Debate e Análise Argumentativa" },
+            { subject: "Revisão Geral", topic: "Simulado Semanal de Fixação", duration: "1h 30m", technique: "Simulação de Prova Cronometrada" }
           ]
         },
         {
           dayName: "Sábado",
           subjects: [
-            { subject: "Revisão dos Erros", topic: "Análise das questões erradas no Simulado", duration: "1h 30m", technique: "Feedback Ativo com IA" }
+            { subject: "Redação", topic: "Produção de Texto Modelo ENEM / Vestibular", duration: "1h 30m", technique: "Estruturação Argumentativa e Proposta de Intervenção" },
+            { subject: "Correção de Erros", topic: "Análise do Gabarito dos Simulados", duration: "1h", technique: "Caderno de Erros" }
           ]
         }
       ]
     });
 
   } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'Erro ao gerar cronograma.' }, { status: 500 });
+    console.error('[Schedule API] Erro ao processar:', err);
+    return NextResponse.json({ error: err.message || 'Erro ao gerar cronograma de estudos.' }, { status: 500 });
   }
 }
