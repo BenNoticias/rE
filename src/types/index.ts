@@ -184,7 +184,7 @@ export interface LeaderboardUser {
 // --------------------------------------------------------------------------
 // NOTIFICAÇÕES E ALERTAS DINÂMICOS (v0.7)
 // --------------------------------------------------------------------------
-export type NotificationType = 'schedule' | 'ranking' | 'quiz' | 'essay' | 'system';
+export type NotificationType = 'schedule' | 'ranking' | 'quiz' | 'essay' | 'exam' | 'system';
 
 export interface NotificationItem {
   id: string;

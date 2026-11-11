@@ -91,6 +91,7 @@ export function NotificationCenter({ onNavigate }: NotificationCenterProps) {
       case 'quiz':
         return <CheckCircle2 className="w-4 h-4 text-emerald-500" />;
       case 'essay':
+      case 'exam':
         return <GraduationCap className="w-4 h-4 text-blue-500" />;
       default:
         return <Sparkles className="w-4 h-4 text-indigo-500" />;

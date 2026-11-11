@@ -180,7 +180,7 @@ export function RedacaoModule({ profile, onProfileUpdated }: RedacaoModuleProps)
       addNotification({
         title: 'Redação Corrigida com IA!',
         message: `Sua redação para o ${examModel.toUpperCase()} obteve ${result.finalScore}/${result.maxScore} pontos (+${earnedXp} XP).`,
-        type: 'exam',
+        type: 'essay',
         linkTab: 'redacao'
       });
 
