@@ -31,6 +31,7 @@ import {
   getSavedEssays, 
   saveEssayCorrection 
 } from '@/lib/storage';
+import { SaveTitleModal } from '@/components/SaveTitleModal';
 
 interface RedacaoModuleProps {
   profile: UserProfile;
@@ -83,6 +84,7 @@ export function RedacaoModule({ profile, onProfileUpdated }: RedacaoModuleProps)
   const [examModel, setExamModel] = useState<VestibularExamModel>('enem');
   const [selectedThemeIndex, setSelectedThemeIndex] = useState<number>(0);
   const [customTheme, setCustomTheme] = useState<string>('');
+  const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
   
   // Editor
   const [essayTitle, setEssayTitle] = useState<string>('');
@@ -223,11 +225,28 @@ ${evaluationResult.improvements.map(i => `• ${i}`).join('\n')}
 
   const handleToggleSaveEssay = () => {
     if (!evaluationResult) return;
-    const isNowSaved = !essaySaved;
-    const updated = { ...evaluationResult, isSaved: isNowSaved };
-    saveEssayCorrection(updated, isNowSaved);
+    if (essaySaved) {
+      // Se já estava salva, permite alternar/desmarcar
+      const updated = { ...evaluationResult, isSaved: false };
+      saveEssayCorrection(updated, false);
+      setEvaluationResult(updated);
+      setEssaySaved(false);
+      setSavedEssays(getSavedEssays());
+    } else {
+      setIsSaveModalOpen(true);
+    }
+  };
+
+  const confirmSaveEssay = (customTitle: string) => {
+    if (!evaluationResult) return;
+    const updated = { 
+      ...evaluationResult, 
+      customTitle: customTitle,
+      isSaved: true 
+    };
+    saveEssayCorrection(updated, true);
     setEvaluationResult(updated);
-    setEssaySaved(isNowSaved);
+    setEssaySaved(true);
     setSavedEssays(getSavedEssays());
   };
 
@@ -239,7 +258,7 @@ ${evaluationResult.improvements.map(i => `• ${i}`).join('\n')}
         <div className="relative z-10 max-w-3xl space-y-3">
           <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-blue-500/20 text-blue-300 text-xs font-semibold border border-blue-400/30">
             <Sparkles className="w-3.5 h-3.5 text-blue-400" />
-            <span>Módulo de Redação IA • Versão v0.7</span>
+            <span>Módulo de Redação IA • v0.9</span>
           </div>
           <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight">
             Laboratório de Redação com Inteligência Artificial
@@ -780,6 +799,15 @@ ${evaluationResult.improvements.map(i => `• ${i}`).join('\n')}
           )}
         </div>
       )}
+
+      {/* Modal para Nome Personalizado ao Salvar Redação */}
+      <SaveTitleModal
+        isOpen={isSaveModalOpen}
+        defaultTitle={evaluationResult?.customTitle || `Redação ${evaluationResult?.examModel.toUpperCase()} - ${evaluationResult?.theme.slice(0, 40)}...`}
+        itemTypeLabel="Correção de Redação"
+        onSave={confirmSaveEssay}
+        onClose={() => setIsSaveModalOpen(false)}
+      />
 
     </div>
   );

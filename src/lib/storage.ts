@@ -502,7 +502,7 @@ export function getAllHistoryItems(): UnifiedHistoryItem[] {
   const summaries = getSavedSummaries().map(s => ({
     id: s.id,
     type: 'summary' as HistoryItemType,
-    title: s.title,
+    title: s.customTitle || s.title,
     subject: s.subject,
     grade: s.grade,
     createdAt: s.createdAt,
@@ -513,7 +513,7 @@ export function getAllHistoryItems(): UnifiedHistoryItem[] {
   const mindmaps = getSavedMindmaps().map(m => ({
     id: m.id,
     type: 'mindmap' as HistoryItemType,
-    title: m.title,
+    title: m.customTitle || m.title,
     subject: m.subject,
     grade: m.grade,
     createdAt: m.createdAt,
@@ -524,7 +524,7 @@ export function getAllHistoryItems(): UnifiedHistoryItem[] {
   const quizzes = getSavedQuizzes().map(q => ({
     id: q.id,
     type: 'quiz' as HistoryItemType,
-    title: q.title,
+    title: q.customTitle || q.title,
     subject: q.subject,
     grade: q.grade,
     score: q.score,
@@ -537,7 +537,7 @@ export function getAllHistoryItems(): UnifiedHistoryItem[] {
   const essays = getSavedEssays().map(e => ({
     id: e.id,
     type: 'essay' as HistoryItemType,
-    title: `Redação ${e.examModel.toUpperCase()}: ${e.theme}`,
+    title: e.customTitle || `Redação ${e.examModel.toUpperCase()}: ${e.theme}`,
     subject: 'portugues',
     score: e.finalScore,
     maxScore: e.maxScore,
@@ -549,7 +549,7 @@ export function getAllHistoryItems(): UnifiedHistoryItem[] {
   const schedules = getSavedSchedules().map(sc => ({
     id: sc.id,
     type: 'schedule' as HistoryItemType,
-    title: sc.title,
+    title: sc.customTitle || sc.title,
     grade: sc.grade,
     createdAt: sc.createdAt,
     isSaved: !!sc.isSaved,

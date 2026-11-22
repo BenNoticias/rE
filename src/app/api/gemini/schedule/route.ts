@@ -6,110 +6,115 @@ export async function POST(req: NextRequest) {
     const { grade, availableHours = 3, weakSubjects = [], userApiKey } = await req.json();
 
     const gradeContext = getGradeDescription(grade || '1_em');
+    const subjectsList = Array.isArray(weakSubjects) && weakSubjects.length > 0
+      ? weakSubjects
+      : ['Matemática', 'Português', 'História'];
+
     const prompt = `
-Você é um psicopedagogo e especialista em alta performance nos estudos para alunos da Educação Básica.
-Crie um Cronograma Semanal de Estudos personalizado para um aluno do ${gradeContext}.
+Você é um psicopedagogo e especialista em alta performance e planejamento de estudos para a Educação Básica e Vestibulares.
+Crie um Cronograma Semanal de Estudos de 7 dias completos (Segunda-feira a Domingo) personalizado para um estudante do ${gradeContext}.
 
-Parâmetros:
-- Horas disponíveis por dia: ${availableHours} horas
-- Disciplinas prioritárias/dificuldades: ${weakSubjects.length ? weakSubjects.join(', ') : 'Matemática, Português, Ciências'}
+REGRAS OBRIGATÓRIAS E RESTRITAS:
+1. MATÉRIAS EXCLUSIVAS: Utilize APENAS E EXCLUSIVAMENTE as seguintes disciplinas fornecidas pelo estudante:
+   [ ${subjectsList.join(', ')} ]
+   É ESTRITAMENTE PROIBIDO incluir qualquer matéria, disciplina ou atividade que não esteja na lista acima. Se houver poucas matérias, distribua-as ao longo da semana variando os temas e técnicas.
+2. 7 DIAS COMPLETOS: O array "weeklyPlan" DEVE conter exatamente 7 dias: "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado" e "Domingo". No Domingo, pode ser uma rotina mais leve de revisão das matérias selecionadas ou descanso planejado com revisão leve.
+3. CARGA HORÁRIA DIÁRIA: O total diário aproximado deve respeitar cerca de ${availableHours} hora(s) por dia.
+4. ROTATIVIDADE OBRIGATÓRIA DE TÉCNICAS DE ESTUDO: Sempre que uma matéria se repetir ao longo da semana, a técnica de estudo recomendada DEVE SER OBRIGATORIAMENTE DIFERENTE da utilizada nos dias anteriores para essa mesma matéria. Alterne ativamente entre:
+   - Resolução Ativa de Questões e Análise de Gabarito
+   - Resumo Ativo / Fichamento Sintético
+   - Construção de Mapa Mental Hierárquico
+   - Flashcards com Repetição Espaçada
+   - Técnica Feynman (ensinar o conceito em voz alta com palavras próprias)
+   - Leitura Crítica e Auto-interrogação
+   - Caderno de Erros e Correção Comentada
 
-Responda ESTRITAMENTE em formato JSON com o seguinte formato:
+Responda ESTRITAMENTE em formato JSON com o seguinte esquema:
 {
-  "title": "Cronograma Semanal Personalizado",
+  "title": "Cronograma de Estudos Personalizado (${availableHours}h/dia)",
   "weeklyPlan": [
     {
       "dayName": "Segunda-feira",
       "subjects": [
         {
-          "subject": "Matemática",
-          "topic": "Resolução de Problemas e Exercícios",
-          "duration": "1h 30min",
-          "technique": "Técnica Pomodoro (25 min estudo / 5 min pausa) + Questões"
-        },
-        {
-          "subject": "História",
-          "topic": "Leitura Ativa e Mapa Mental",
-          "duration": "1h",
-          "technique": "Fichamento e Resumo Visual"
+          "subject": "Nome exato da matéria da lista",
+          "topic": "Descrição do tema ou objetivo da sessão de estudo",
+          "duration": "1h 30m",
+          "technique": "Técnica pedagógica rotativa recomendada"
         }
       ]
     },
-    {
-      "dayName": "Terça-feira",
-      "subjects": [
-        {
-          "subject": "Português",
-          "topic": "Gramática e Leitura de Texto",
-          "duration": "1h 30min",
-          "technique": "Estudo Ativo"
-        }
-      ]
-    },
-    { "dayName": "Quarta-feira", "subjects": [] },
-    { "dayName": "Quinta-feira", "subjects": [] },
-    { "dayName": "Sexta-feira", "subjects": [] },
-    { "dayName": "Sábado", "subjects": [] }
+    { "dayName": "Terça-feira", "subjects": [...] },
+    { "dayName": "Quarta-feira", "subjects": [...] },
+    { "dayName": "Quinta-feira", "subjects": [...] },
+    { "dayName": "Sexta-feira", "subjects": [...] },
+    { "dayName": "Sábado", "subjects": [...] },
+    { "dayName": "Domingo", "subjects": [...] }
   ]
 }
 `;
 
     const parsed = await generateGeminiJson<any>(prompt, userApiKey);
 
-    if (parsed && Array.isArray(parsed.weeklyPlan) && parsed.weeklyPlan.length > 0) {
-      return NextResponse.json(parsed);
+    if (parsed && Array.isArray(parsed.weeklyPlan) && parsed.weeklyPlan.length >= 6) {
+      // Garantir que todas as matérias geradas sejam estritamente as selecionadas
+      const normalizedPlan = parsed.weeklyPlan.map((d: any) => ({
+        ...d,
+        subjects: Array.isArray(d.subjects) 
+          ? d.subjects.filter((s: any) => subjectsList.some((allowed: string) => allowed.toLowerCase() === (s.subject || '').toLowerCase() || (s.subject || '').toLowerCase().includes(allowed.toLowerCase())))
+          : []
+      }));
+      return NextResponse.json({ ...parsed, weeklyPlan: normalizedPlan });
     }
+
+    // Fallback inteligente garantindo apenas matérias selecionadas e 7 dias
+    const days = [
+      'Segunda-feira',
+      'Terça-feira',
+      'Quarta-feira',
+      'Quinta-feira',
+      'Sexta-feira',
+      'Sábado',
+      'Domingo',
+    ];
+
+    const techniquesPool = [
+      'Resolução Ativa de Questões e Caderno de Erros',
+      'Elaboração de Mapa Mental Hierárquico',
+      'Técnica Feynman (autoexplicação sem consulta)',
+      'Flashcards e Repetição Espaçada',
+      'Resumo Ativo e Fichamento Conceitual',
+      'Simulado Cronometrado de Fixação',
+      'Revisão Ativa por Tópicos Chave',
+    ];
+
+    const fallbackPlan = days.map((dayName, idx) => {
+      const subjectIndex = idx % subjectsList.length;
+      const sub = subjectsList[subjectIndex];
+      const technique = techniquesPool[idx % techniquesPool.length];
+
+      return {
+        dayName,
+        subjects: [
+          {
+            subject: sub,
+            topic: `Estudo focado e aprofundamento prático em ${sub}`,
+            duration: `${Math.max(1, availableHours)}h`,
+            technique,
+          },
+        ],
+      };
+    });
 
     return NextResponse.json({
       title: `Cronograma Semanal de Estudos (${availableHours}h/dia)`,
-      weeklyPlan: [
-        {
-          dayName: "Segunda-feira",
-          subjects: [
-            { subject: "Matemática", topic: "Revisão Teórica e Exercícios", duration: "1h 30m", technique: "Pomodoro + Resolução de Questões" },
-            { subject: "História", topic: "Leitura de Capítulos e Anotações", duration: "1h", technique: "Resumo Estruturado" }
-          ]
-        },
-        {
-          dayName: "Terça-feira",
-          subjects: [
-            { subject: "Português", topic: "Interpretação de Texto e Gramática", duration: "1h 30m", technique: "Análise Sintática Ativa" },
-            { subject: "Biologia", topic: "Conceitos de Ecologia / Citologia", duration: "1h", technique: "Criação de Mapa Mental" }
-          ]
-        },
-        {
-          dayName: "Quarta-feira",
-          subjects: [
-            { subject: "Física", topic: "Fórmulas e Resolução de Problemas", duration: "1h 30m", technique: "Estudo Dirigido" },
-            { subject: "Geografia", topic: "Geopolítica e Cartografia", duration: "1h", technique: "Flashcards e Leitura" }
-          ]
-        },
-        {
-          dayName: "Quinta-feira",
-          subjects: [
-            { subject: "Química", topic: "Tabela Periódica e Reações", duration: "1h 30m", technique: "Pomodoro + Exercícios" },
-            { subject: "Literatura", topic: "Escolas Literárias e Análise de Obras", duration: "1h", technique: "Leitura Crítica" }
-          ]
-        },
-        {
-          dayName: "Sexta-feira",
-          subjects: [
-            { subject: "Filosofia & Sociologia", topic: "Pensadores Contemporâneos e Temas Sociais", duration: "1h", technique: "Debate e Análise Argumentativa" },
-            { subject: "Revisão Geral", topic: "Simulado Semanal de Fixação", duration: "1h 30m", technique: "Simulação de Prova Cronometrada" }
-          ]
-        },
-        {
-          dayName: "Sábado",
-          subjects: [
-            { subject: "Redação", topic: "Produção de Texto Modelo ENEM / Vestibular", duration: "1h 30m", technique: "Estruturação Argumentativa e Proposta de Intervenção" },
-            { subject: "Correção de Erros", topic: "Análise do Gabarito dos Simulados", duration: "1h", technique: "Caderno de Erros" }
-          ]
-        }
-      ]
+      weeklyPlan: fallbackPlan,
     });
-
   } catch (err: any) {
     console.error('[Schedule API] Erro ao processar:', err);
-    return NextResponse.json({ error: err.message || 'Erro ao gerar cronograma de estudos.' }, { status: 500 });
+    return NextResponse.json(
+      { error: err.message || 'Erro ao gerar cronograma de estudos.' },
+      { status: 500 }
+    );
   }
 }

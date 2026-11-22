@@ -1,4 +1,4 @@
-export const APP_VERSION = 'v0.8';
+export const APP_VERSION = 'v0.9';
 
 export type GradeLevel = 
   | '6_ef' 
@@ -98,6 +98,7 @@ export interface SummaryTopic {
 export interface SavedSummary {
   id: string;
   title: string;
+  customTitle?: string;
   subject: SubjectId;
   grade: GradeLevel;
   summaryOverview: string;
@@ -112,7 +113,9 @@ export interface MindmapNode {
   label: string;
   description?: string;
   color?: string;
-  type?: 'root' | 'main' | 'sub';
+  type?: 'root' | 'main' | 'sub' | 'detail';
+  level?: number; // 0: Root, 1: Eixo, 2: Subtópico, 3: Detalhe/Exemplo
+  parentId?: string;
   x?: number;
   y?: number;
 }
@@ -127,6 +130,7 @@ export interface MindmapEdge {
 export interface SavedMindmap {
   id: string;
   title: string;
+  customTitle?: string;
   subject: SubjectId;
   grade: GradeLevel;
   nodes: MindmapNode[];
@@ -141,12 +145,15 @@ export interface QuizQuestion {
   options: string[];
   correctAnswer: number;
   explanation: string;
+  subject?: SubjectId | string;
 }
 
 export interface QuizResult {
   id: string;
   title: string;
+  customTitle?: string;
   subject: SubjectId;
+  subjects?: SubjectId[];
   grade: GradeLevel;
   questions: QuizQuestion[];
   userAnswers: number[];
@@ -154,23 +161,30 @@ export interface QuizResult {
   correctCount: number;
   totalQuestions: number;
   xpEarned: number;
+  timeMode?: 'timer' | 'stopwatch';
+  timeSpentSeconds?: number;
+  questionsPerMinute?: number;
+  averageSecondsPerQuestion?: number;
+  isEnemMode?: boolean;
+  enemDay?: 1 | 2;
   createdAt: string;
   isSaved?: boolean;
 }
 
 export interface ScheduleDay {
-  dayName: string; // 'Segunda-feira', etc.
+  dayName: string; // 'Segunda-feira', 'Domingo', etc.
   subjects: {
     subject: string;
     topic: string;
     duration: string;
-    technique: string; // e.g. 'Pomodoro 25min + Exercícios'
+    technique: string; // e.g. 'Pomodoro 50min + Resolução de Questões'
   }[];
 }
 
 export interface SavedSchedule {
   id: string;
   title: string;
+  customTitle?: string;
   grade: GradeLevel;
   weeklyPlan: ScheduleDay[];
   createdAt: string;
@@ -228,6 +242,7 @@ export interface EssayCorrectionResult {
   examModel: VestibularExamModel;
   theme: string;
   essayTitle?: string;
+  customTitle?: string;
   essayText: string;
   finalScore: number;
   maxScore: number;

@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { SubjectId, SUBJECTS, GradeLevel, GRADE_OPTIONS, UserProfile, SavedSummary } from '@/types';
 import { saveSummary } from '@/lib/storage';
+import { SaveTitleModal } from '@/components/SaveTitleModal';
 
 interface SummaryModuleProps {
   profile: UserProfile;
@@ -31,6 +32,7 @@ export function SummaryModule({ profile, selectedSubject = 'matematica', onSaved
   const [copied, setCopied] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
+  const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
 
   const currentSubjectObj = SUBJECTS.find(s => s.id === subject) || SUBJECTS[0];
   const gradeLabel = GRADE_OPTIONS.find(g => g.id === profile.grade)?.label || 'Ensino Médio';
@@ -110,12 +112,21 @@ ${summaryData.studyTips.map(tip => `- ${tip}`).join('\n')}
 
   const handleSaveSummary = () => {
     if (!summaryData) return;
-    const isNowSaved = !saved;
-    const updatedSummary = { ...summaryData, isSaved: isNowSaved };
-    saveSummary(updatedSummary, isNowSaved);
+    setIsSaveModalOpen(true);
+  };
+
+  const confirmSaveSummary = (customTitle: string) => {
+    if (!summaryData) return;
+    const updatedSummary = { 
+      ...summaryData, 
+      title: customTitle,
+      customTitle: customTitle,
+      isSaved: true 
+    };
+    saveSummary(updatedSummary, true);
     setSummaryData(updatedSummary);
     if (onSavedSummaryAdded) onSavedSummaryAdded(updatedSummary);
-    setSaved(isNowSaved);
+    setSaved(true);
   };
 
   return (
@@ -310,6 +321,15 @@ ${summaryData.studyTips.map(tip => `- ${tip}`).join('\n')}
 
         </div>
       )}
+
+      {/* Modal para Nome Personalizado ao Salvar */}
+      <SaveTitleModal
+        isOpen={isSaveModalOpen}
+        defaultTitle={summaryData?.customTitle || summaryData?.title || `Resumo: ${topic}`}
+        itemTypeLabel="Resumo Didático"
+        onSave={confirmSaveSummary}
+        onClose={() => setIsSaveModalOpen(false)}
+      />
 
     </div>
   );

@@ -94,8 +94,12 @@ export function TopHeader({
           className="flex items-center space-x-3 pl-2 pr-1 py-1 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors group cursor-pointer"
           title="Ver e Editar Meu Perfil"
         >
-          <div className="w-8 h-8 rounded-full bg-blue-600 text-white font-bold flex items-center justify-center text-xs shadow-sm">
-            {(profile.username || profile.name || 'E').charAt(0).toUpperCase()}
+          <div className="w-8 h-8 rounded-full bg-blue-600 text-white font-bold flex items-center justify-center text-xs shadow-sm overflow-hidden">
+            {profile.avatarUrl && (profile.avatarUrl.startsWith('data:image') || profile.avatarUrl.startsWith('http')) ? (
+              <img src={profile.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+            ) : (
+              (profile.username || profile.name || 'E').charAt(0).toUpperCase()
+            )}
           </div>
           <div className="text-left hidden sm:block">
             <span className="block text-xs font-bold text-slate-900 dark:text-slate-100 -mb-0.5 max-w-[100px] truncate">
