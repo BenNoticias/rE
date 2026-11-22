@@ -1,4 +1,4 @@
-export const APP_VERSION = 'v0.7';
+export const APP_VERSION = 'v0.8';
 
 export type GradeLevel = 
   | '6_ef' 
@@ -31,12 +31,12 @@ export type SubjectId =
   | 'portugues'
   | 'historia'
   | 'geografia'
-  | 'ciencias'
   | 'fisica'
   | 'quimica'
   | 'biologia'
   | 'literatura'
-  | 'filosofia';
+  | 'filosofia'
+  | 'sociologia';
 
 export interface SubjectInfo {
   id: SubjectId;
@@ -51,19 +51,19 @@ export const SUBJECTS: SubjectInfo[] = [
   { id: 'portugues', name: 'Português', color: 'from-emerald-500 to-teal-600', iconName: 'BookOpen', description: 'Gramática, Redação e Interpretação' },
   { id: 'historia', name: 'História', color: 'from-amber-500 to-orange-600', iconName: 'Landmark', description: 'História do Brasil e Geral' },
   { id: 'geografia', name: 'Geografia', color: 'from-green-500 to-emerald-600', iconName: 'Globe', description: 'Geopolítica, Cartografia e Meio Ambiente' },
-  { id: 'ciencias', name: 'Ciências', color: 'from-cyan-500 to-blue-600', iconName: 'Atom', description: 'Fundamentos de Física, Química e Biologia' },
   { id: 'fisica', name: 'Física', color: 'from-violet-500 to-purple-600', iconName: 'Zap', description: 'Mecânica, Termodinâmica e Eletricidade' },
   { id: 'quimica', name: 'Química', color: 'from-pink-500 to-rose-600', iconName: 'FlaskConical', description: 'Reações, Estequiometria e Química Orgânica' },
   { id: 'biologia', name: 'Biologia', color: 'from-lime-500 to-green-600', iconName: 'Dna', description: 'Genética, Ecologia e Citologia' },
   { id: 'literatura', name: 'Literatura', color: 'from-purple-500 to-pink-600', iconName: 'Feather', description: 'Escolas Literárias e Obras Clássicas' },
-  { id: 'filosofia', name: 'Filosofia & Sociologia', color: 'from-slate-600 to-zinc-700', iconName: 'Brain', description: 'Pensadores, Ética e Sociedade' },
+  { id: 'filosofia', name: 'Filosofia', color: 'from-amber-600 to-yellow-700', iconName: 'Brain', description: 'Epistemologia, Ética, Teoria do Conhecimento e Política' },
+  { id: 'sociologia', name: 'Sociologia', color: 'from-teal-600 to-cyan-700', iconName: 'Users', description: 'Sociedade, Cidadania, Cultura, Movimentos Sociais e Trabalho' },
 ];
 
 export interface UserConsent {
   termsAccepted: boolean;
   privacyAccepted: boolean;
   timestamp: string; // Data e hora do consentimento ISO 8601
-  version: string;   // Versão dos termos (ex: 'v0.7')
+  version: string;   // Versão dos termos (ex: 'v0.8')
 }
 
 export interface UserProfile {
@@ -71,6 +71,9 @@ export interface UserProfile {
   username: string; // Identificador minimizado para LGPD
   name: string;     // Alias para compatibilidade
   email: string;
+  avatarUrl?: string; // Foto de perfil ou identificador de avatar preset
+  studyGoal?: string; // Foco de estudos (ex: 'Medicina no ENEM', 'FUVEST', 'Reforço Escolar')
+  school?: string;    // Escola / Colégio do estudante
   passwordHash?: string; // Hash seguro SHA-256
   grade: GradeLevel;
   xp: number;
@@ -101,6 +104,7 @@ export interface SavedSummary {
   topics: SummaryTopic[];
   studyTips: string[];
   createdAt: string;
+  isSaved?: boolean;
 }
 
 export interface MindmapNode {
@@ -128,6 +132,7 @@ export interface SavedMindmap {
   nodes: MindmapNode[];
   edges: MindmapEdge[];
   createdAt: string;
+  isSaved?: boolean;
 }
 
 export interface QuizQuestion {
@@ -150,6 +155,7 @@ export interface QuizResult {
   totalQuestions: number;
   xpEarned: number;
   createdAt: string;
+  isSaved?: boolean;
 }
 
 export interface ScheduleDay {
@@ -168,6 +174,7 @@ export interface SavedSchedule {
   grade: GradeLevel;
   weeklyPlan: ScheduleDay[];
   createdAt: string;
+  isSaved?: boolean;
 }
 
 export interface LeaderboardUser {
@@ -175,6 +182,7 @@ export interface LeaderboardUser {
   username: string;
   name: string;
   grade: GradeLevel;
+  avatarUrl?: string;
   xp: number;
   level: number;
   streak: number;
@@ -182,7 +190,7 @@ export interface LeaderboardUser {
 }
 
 // --------------------------------------------------------------------------
-// NOTIFICAÇÕES E ALERTAS DINÂMICOS (v0.7)
+// NOTIFICAÇÕES E ALERTAS DINÂMICOS (v0.8)
 // --------------------------------------------------------------------------
 export type NotificationType = 'schedule' | 'ranking' | 'quiz' | 'essay' | 'exam' | 'system';
 
@@ -198,7 +206,7 @@ export interface NotificationItem {
 }
 
 // --------------------------------------------------------------------------
-// VESTIBULARES E CORREÇÃO DE REDAÇÃO COM GEMINI (v0.7)
+// VESTIBULARES E CORREÇÃO DE REDAÇÃO COM GEMINI (v0.8)
 // --------------------------------------------------------------------------
 export type VestibularExamModel = 'enem' | 'fuvest' | 'unicamp' | 'uerj' | 'ita';
 
@@ -230,6 +238,7 @@ export interface EssayCorrectionResult {
   suggestedRewrites: SuggestedRewrite[];
   generalFeedback: string;
   createdAt: string;
+  isSaved?: boolean;
 }
 
 export interface PastExamQuestion {
@@ -243,4 +252,23 @@ export interface PastExamQuestion {
   options: string[];
   correctAnswer: number;
   explanation: string;
+  isSaved?: boolean;
+}
+
+// --------------------------------------------------------------------------
+// HISTÓRICO UNIFICADO E CONTEÚDOS SALVOS (v0.8)
+// --------------------------------------------------------------------------
+export type HistoryItemType = 'summary' | 'mindmap' | 'quiz' | 'essay' | 'schedule' | 'exam';
+
+export interface UnifiedHistoryItem {
+  id: string;
+  type: HistoryItemType;
+  title: string;
+  subject?: SubjectId | string;
+  grade?: GradeLevel;
+  score?: number;
+  maxScore?: number;
+  createdAt: string;
+  isSaved: boolean;
+  data: any;
 }

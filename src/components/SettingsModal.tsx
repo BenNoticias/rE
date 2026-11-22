@@ -10,18 +10,18 @@ import {
   Save, 
   X, 
   RefreshCw,
-  ShieldCheck,
-  Download,
-  Trash2,
-  Lock,
-  User,
-  Eye,
-  FileText,
+  ShieldCheck, 
+  Download, 
+  Trash2, 
+  Moon, 
+  Sun, 
+  Laptop,
+  FileCheck,
   AlertTriangle,
-  UserX,
-  FileCheck
+  FileText
 } from 'lucide-react';
-import { UserProfile, GRADE_OPTIONS, GradeLevel, APP_VERSION } from '@/types';
+import { useTheme } from 'next-themes';
+import { UserProfile, APP_VERSION } from '@/types';
 import { createClient } from '@supabase/supabase-js';
 import { exportAllUserData, revokeUserConsent, deleteUserAccount } from '@/lib/storage';
 import { downloadUserDataAsJson } from '@/lib/security';
@@ -43,11 +43,10 @@ export function SettingsModal({
   onSaveProfile,
   onDeleteAccount 
 }: SettingsModalProps) {
-  const [activeTab, setActiveTab] = useState<'profile' | 'privacy' | 'database'>('profile');
+  const { theme, setTheme } = useTheme();
+  const [activeTab, setActiveTab] = useState<'preferences' | 'privacy'>('preferences');
 
-  // Profile state
-  const [username, setUsername] = useState(profile.username || profile.name || '');
-  const [grade, setGrade] = useState<GradeLevel>(profile.grade);
+  // Custom DB & AI preferences
   const [customGeminiKey, setCustomGeminiKey] = useState(profile.customGeminiKey || '');
   const [useCustomDb, setUseCustomDb] = useState(profile.useCustomDb || false);
   const [supabaseUrl, setSupabaseUrl] = useState(profile.supabaseUrl || '');
@@ -96,12 +95,9 @@ export function SettingsModal({
     }
   };
 
-  const handleSave = () => {
+  const handleSavePreferences = () => {
     const updated: UserProfile = {
       ...profile,
-      username: username.trim() || 'Estudante',
-      name: username.trim() || 'Estudante',
-      grade,
       customGeminiKey: customGeminiKey.trim(),
       useCustomDb,
       supabaseUrl: supabaseUrl.trim(),
@@ -166,13 +162,13 @@ export function SettingsModal({
               <Settings className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">Painel do Usuário & Configurações</h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400">Gerencie seu perfil, privacidade LGPD e conexões</p>
+              <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">Configurações do Sistema</h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Preferências visuais, banco de dados e direitos LGPD</p>
             </div>
           </div>
           <button 
             onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg"
+            className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -181,15 +177,15 @@ export function SettingsModal({
         {/* Tab Navigation */}
         <div className="flex space-x-2 bg-slate-100 dark:bg-slate-800/70 p-1 rounded-xl mb-6 shrink-0">
           <button
-            onClick={() => setActiveTab('profile')}
+            onClick={() => setActiveTab('preferences')}
             className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center space-x-2 ${
-              activeTab === 'profile'
+              activeTab === 'preferences'
                 ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-sm'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
             }`}
           >
-            <User className="w-3.5 h-3.5" />
-            <span>Perfil do Aluno</span>
+            <Database className="w-3.5 h-3.5" />
+            <span>Preferências & Banco de Dados</span>
           </button>
 
           <button
@@ -203,261 +199,113 @@ export function SettingsModal({
             <ShieldCheck className="w-3.5 h-3.5" />
             <span>Privacidade & LGPD</span>
           </button>
-
-          <button
-            onClick={() => setActiveTab('database')}
-            className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center space-x-2 ${
-              activeTab === 'database'
-                ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
-            }`}
-          >
-            <Database className="w-3.5 h-3.5" />
-            <span>IA & Banco de Dados</span>
-          </button>
         </div>
 
         {/* Tab Contents */}
         <div className="flex-1 overflow-y-auto space-y-6 pr-1">
           
-          {/* TAB 1: PERFIL */}
-          {activeTab === 'profile' && (
-            <div className="space-y-4">
-              <div className="space-y-1">
-                <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">
-                  Correção de Informações Cadastrais
-                </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Exercite seu direito de correção (LGPD Art. 18, III) atualizando seu nome de usuário e série.
+          {/* TAB 1: PREFERÊNCIAS & BANCO DE DADOS */}
+          {activeTab === 'preferences' && (
+            <div className="space-y-6">
+              
+              {/* Tema da Interface */}
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/60 space-y-3">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 block">
+                  Aparência e Tema do Sistema
+                </span>
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setTheme('light')}
+                    className={`py-2 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center space-x-1.5 transition-all ${
+                      theme === 'light'
+                        ? 'border-blue-600 bg-white text-blue-600 shadow-sm'
+                        : 'border-slate-200 dark:border-slate-700 bg-white/50 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                    }`}
+                  >
+                    <Sun className="w-4 h-4 text-amber-500" />
+                    <span>Claro</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setTheme('dark')}
+                    className={`py-2 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center space-x-1.5 transition-all ${
+                      theme === 'dark'
+                        ? 'border-blue-600 bg-slate-800 text-blue-400 shadow-sm'
+                        : 'border-slate-200 dark:border-slate-700 bg-white/50 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                    }`}
+                  >
+                    <Moon className="w-4 h-4 text-indigo-400" />
+                    <span>Escuro</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setTheme('system')}
+                    className={`py-2 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center space-x-1.5 transition-all ${
+                      theme === 'system'
+                        ? 'border-blue-600 bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm'
+                        : 'border-slate-200 dark:border-slate-700 bg-white/50 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                    }`}
+                  >
+                    <Laptop className="w-4 h-4 text-slate-500" />
+                    <span>Sistema</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Chave Gemini Opcional */}
+              <div className="space-y-2">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  Chave Personalizada da Google Gemini API (Opcional)
+                </label>
+                <div className="relative">
+                  <Key className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+                  <input
+                    type="password"
+                    value={customGeminiKey}
+                    onChange={(e) => setCustomGeminiKey(e.target.value)}
+                    placeholder="Chave customizada AI Studio (opcional)"
+                    className="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 outline-none"
+                  />
+                </div>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  Por padrão, a plataforma utiliza a chave global configurada com modelo Gemini 3.6 Flash.
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Nome de Usuário (Username)
-                  </label>
-                  <input
-                    type="text"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    placeholder="Ex: joao_enem"
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 outline-none"
-                  />
-                  <span className="text-[10px] text-slate-400 mt-1 block">
-                    Visível no ranking sem expor seu nome civil.
-                  </span>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Série / Ano Escolar
-                  </label>
-                  <select
-                    value={grade}
-                    onChange={(e) => setGrade(e.target.value as GradeLevel)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 outline-none"
-                  >
-                    {GRADE_OPTIONS.map((g) => (
-                      <option key={g.id} value={g.id}>
-                        {g.label} ({g.category})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* Readonly Identity Info */}
-              <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 space-y-2">
-                <div className="flex justify-between text-xs">
-                  <span className="text-slate-500 dark:text-slate-400 font-medium">E-mail Cadastrado:</span>
-                  <span className="text-slate-900 dark:text-slate-100 font-semibold">{profile.email}</span>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-slate-500 dark:text-slate-400 font-medium">Identificador Único (ID):</span>
-                  <span className="text-slate-600 dark:text-slate-400 font-mono text-[11px]">{profile.id}</span>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 2: PRIVACIDADE & LGPD (DIREITOS DO TITULAR) */}
-          {activeTab === 'privacy' && (
-            <div className="space-y-6">
-              
-              {/* 1. Transparência e Acesso */}
-              <div className="space-y-2.5">
-                <div className="flex items-center space-x-2">
-                  <Eye className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                  <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">
-                    Acesso e Transparência aos seus Dados (Art. 18, II)
-                  </h3>
-                </div>
-                
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-800">
-                    <span className="text-[10px] text-slate-400 uppercase font-bold block">XP Acumulado</span>
-                    <span className="text-sm font-extrabold text-blue-600 dark:text-blue-400">{profile.xp || 0} XP</span>
-                  </div>
-                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-800">
-                    <span className="text-[10px] text-slate-400 uppercase font-bold block">Nível Atual</span>
-                    <span className="text-sm font-extrabold text-purple-600 dark:text-purple-400">Nível {profile.level || 1}</span>
-                  </div>
-                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-800">
-                    <span className="text-[10px] text-slate-400 uppercase font-bold block">Ofensiva</span>
-                    <span className="text-sm font-extrabold text-amber-500">{profile.streak || 1} dias</span>
-                  </div>
-                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-800">
-                    <span className="text-[10px] text-slate-400 uppercase font-bold block">Consentimento</span>
-                    <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
-                      {consentRevokedState ? 'Revogado' : `Ativo (${APP_VERSION})`}
+              {/* Conexão Supabase Próprio */}
+              <div className="p-4 rounded-2xl bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-900/60 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <span className="text-xs font-bold text-slate-900 dark:text-slate-100 block">
+                      Banco de Dados Próprio (Supabase Privado)
+                    </span>
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400 block">
+                      Guarde seus dados na sua própria instância de nuvem.
                     </span>
                   </div>
-                </div>
-
-                <div className="text-[11px] text-slate-500 dark:text-slate-400 p-2.5 rounded-xl bg-blue-50/50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/30 flex items-center justify-between">
-                  <span>Consentimento registrado em: {profile.consent?.timestamp ? new Date(profile.consent.timestamp).toLocaleString('pt-BR') : 'Data de cadastro'}</span>
-                  <button
-                    onClick={() => {
-                      setLegalModalTab('privacy');
-                      setIsLegalModalOpen(true);
-                    }}
-                    className="text-blue-600 dark:text-blue-400 font-bold hover:underline"
-                  >
-                    Ver Política
-                  </button>
-                </div>
-              </div>
-
-              {/* 2. Portabilidade dos Dados (Art. 18, V) */}
-              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center space-x-1.5">
-                      <Download className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                      <span>Portabilidade de Dados (Exportação)</span>
-                    </h4>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                      Baixe todos os seus dados pedagógicos, resumos, simulados e histórico em formato JSON estruturado.
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleExportData}
-                    className="px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 text-slate-700 dark:text-slate-200 text-xs font-bold flex items-center space-x-1.5 shadow-sm transition-all"
-                  >
-                    <Download className="w-3.5 h-3.5 text-blue-600" />
-                    <span>Baixar JSON</span>
-                  </button>
-                </div>
-
-                {exportSuccess && (
-                  <div className="text-xs text-emerald-600 font-semibold flex items-center space-x-1">
-                    <Check className="w-4 h-4" />
-                    <span>Arquivo JSON baixado com sucesso!</span>
-                  </div>
-                )}
-              </div>
-
-              {/* 3. Não Compartilhamento com Terceiros */}
-              <div className="p-3.5 rounded-2xl bg-emerald-50/60 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/40 text-emerald-900 dark:text-emerald-200 text-xs space-y-1">
-                <div className="flex items-center space-x-1.5 font-bold">
-                  <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                  <span>Compromisso de Não Compartilhamento</span>
-                </div>
-                <p className="text-[11px] text-emerald-800 dark:text-emerald-300">
-                  O EstudaAI não compartilha nem vende dados de estudantes com terceiros para fins de marketing ou publicidade. Todos os dados são exclusivamente pedagógicos.
-                </p>
-              </div>
-
-              {/* 4. Revogação e Exclusão (Direito ao Esquecimento - Art. 18, VI & IX) */}
-              <div className="p-4 rounded-2xl bg-red-50/50 dark:bg-red-950/20 border border-red-100 dark:border-red-900/30 space-y-3">
-                <h4 className="text-xs font-bold text-red-900 dark:text-red-300 flex items-center space-x-1.5">
-                  <AlertTriangle className="w-4 h-4 text-red-600" />
-                  <span>Revogação e Exclusão de Conta (Direito ao Esquecimento)</span>
-                </h4>
-                
-                <div className="flex flex-col sm:flex-row gap-2.5">
-                  <button
-                    type="button"
-                    onClick={handleRevokeConsent}
-                    disabled={consentRevokedState}
-                    className="flex-1 py-2 px-3 rounded-xl border border-red-200 dark:border-red-800 bg-white dark:bg-slate-900 hover:bg-red-50 text-red-700 dark:text-red-300 text-xs font-semibold transition-colors disabled:opacity-50"
-                  >
-                    {consentRevokedState ? 'Consentimento Revogado' : 'Revogar Consentimento'}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setShowDeleteConfirm(true)}
-                    className="flex-1 py-2 px-3 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold flex items-center justify-center space-x-1.5 shadow-sm transition-all"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                    <span>Excluir Conta Permanentemente</span>
-                  </button>
-                </div>
-              </div>
-
-            </div>
-          )}
-
-          {/* TAB 3: IA & BANCO DE DADOS */}
-          {activeTab === 'database' && (
-            <div className="space-y-6">
-              
-              {/* Google Gemini Key */}
-              <div className="space-y-2">
-                <div className="flex items-center space-x-2">
-                  <Key className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                  <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">
-                    API Key do Google Gemini (Opcional)
-                  </h3>
-                </div>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  O sistema possui chave padrão ativa. Se desejar usar sua própria cota pessoal da Google AI, insira abaixo:
-                </p>
-                <input
-                  type="password"
-                  placeholder="Cole sua API Key do Gemini (ex: AIzaSy...)"
-                  value={customGeminiKey}
-                  onChange={(e) => setCustomGeminiKey(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 outline-none font-mono"
-                />
-              </div>
-
-              {/* Supabase Connection */}
-              <div className="space-y-3 pt-2 border-t border-slate-100 dark:border-slate-800">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <Database className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-                    <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">
-                      Banco de Dados Próprio (Supabase)
-                    </h3>
-                  </div>
-
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={useCustomDb}
-                      onChange={(e) => setUseCustomDb(e.target.checked)}
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:after:border-slate-600 peer-checked:bg-emerald-600"></div>
-                  </label>
+                  <input
+                    type="checkbox"
+                    checked={useCustomDb}
+                    onChange={(e) => setUseCustomDb(e.target.checked)}
+                    className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 cursor-pointer"
+                  />
                 </div>
 
                 {useCustomDb && (
-                  <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-3">
+                  <div className="space-y-3 pt-2 border-t border-indigo-100 dark:border-indigo-900/40">
                     <div>
                       <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                         Supabase Project URL
                       </label>
                       <input
                         type="text"
-                        placeholder="https://xxxx.supabase.co"
                         value={supabaseUrl}
                         onChange={(e) => setSupabaseUrl(e.target.value)}
-                        className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-slate-100 font-mono outline-none"
+                        placeholder="https://seu-projeto.supabase.co"
+                        className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 outline-none"
                       />
                     </div>
 
@@ -467,10 +315,10 @@ export function SettingsModal({
                       </label>
                       <input
                         type="password"
-                        placeholder="eyJhbGciOiJIUzI1Ni..."
                         value={supabaseAnonKey}
                         onChange={(e) => setSupabaseAnonKey(e.target.value)}
-                        className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-slate-100 font-mono outline-none"
+                        placeholder="sua_chave_anonima_publica"
+                        className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 outline-none"
                       />
                     </div>
 
@@ -479,19 +327,24 @@ export function SettingsModal({
                         type="button"
                         onClick={handleTestSupabase}
                         disabled={dbStatus === 'testing'}
-                        className="px-3 py-1.5 rounded-xl bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200 text-xs font-semibold flex items-center space-x-1.5"
+                        className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold flex items-center space-x-1.5 transition-colors disabled:opacity-50"
                       >
-                        {dbStatus === 'testing' ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                        <RefreshCw className={`w-3.5 h-3.5 ${dbStatus === 'testing' ? 'animate-spin' : ''}`} />
                         <span>Testar Conexão</span>
                       </button>
 
-                      {dbStatus !== 'idle' && (
-                        <div className={`text-xs font-medium flex items-center space-x-1 ${
-                          dbStatus === 'success' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'
-                        }`}>
-                          {dbStatus === 'success' ? <Check className="w-3.5 h-3.5" /> : <AlertCircle className="w-3.5 h-3.5" />}
-                          <span>{dbMessage}</span>
-                        </div>
+                      {dbStatus === 'success' && (
+                        <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center space-x-1">
+                          <Check className="w-3.5 h-3.5" />
+                          <span>Conectado com sucesso!</span>
+                        </span>
+                      )}
+
+                      {dbStatus === 'error' && (
+                        <span className="text-xs font-semibold text-red-600 dark:text-red-400 flex items-center space-x-1">
+                          <AlertCircle className="w-3.5 h-3.5" />
+                          <span className="truncate max-w-[200px]">{dbMessage}</span>
+                        </span>
                       )}
                     </div>
                   </div>
@@ -501,75 +354,194 @@ export function SettingsModal({
             </div>
           )}
 
-        </div>
+          {/* TAB 2: PRIVACIDADE & LGPD */}
+          {activeTab === 'privacy' && (
+            <div className="space-y-6">
+              
+              {/* Resumo de Consentimento */}
+              <div className="p-4 rounded-2xl bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/60 space-y-2">
+                <div className="flex items-center space-x-2 text-emerald-700 dark:text-emerald-400">
+                  <FileCheck className="w-4 h-4" />
+                  <span className="text-xs font-bold uppercase tracking-wider">Status do Consentimento</span>
+                </div>
+                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                  {consentRevokedState ? (
+                    <span className="text-amber-600 dark:text-amber-400 font-semibold">
+                      Consentimento revogado. Seus dados estão em modo restrito.
+                    </span>
+                  ) : (
+                    <span>
+                      Termos de Uso e Política de Privacidade aceitos sob conformidade da LGPD ({APP_VERSION}).
+                    </span>
+                  )}
+                </p>
+                <div className="flex items-center space-x-3 pt-1">
+                  <button
+                    onClick={() => {
+                      setLegalModalTab('terms');
+                      setIsLegalModalOpen(true);
+                    }}
+                    className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline flex items-center space-x-1"
+                  >
+                    <FileText className="w-3.5 h-3.5" />
+                    <span>Ver Termos</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setLegalModalTab('privacy');
+                      setIsLegalModalOpen(true);
+                    }}
+                    className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline flex items-center space-x-1"
+                  >
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                    <span>Política de Privacidade</span>
+                  </button>
+                </div>
+              </div>
 
-        {/* Footer Actions */}
-        <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0">
-          {savedSuccess ? (
-            <div className="flex items-center space-x-1.5 text-emerald-600 dark:text-emerald-400 font-semibold text-xs animate-bounce">
-              <Check className="w-4 h-4" />
-              <span>Configurações salvas com sucesso!</span>
-            </div>
-          ) : (
-            <div className="text-[11px] text-slate-400 font-mono">
-              EstudaAI {APP_VERSION}
+              {/* Portabilidade de Dados */}
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <span className="text-xs font-bold text-slate-900 dark:text-slate-100 block">
+                      Portabilidade de Dados (Art. 18, V)
+                    </span>
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400 block">
+                      Baixe uma cópia completa de todos os seus dados e histórico em formato aberto (JSON).
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleExportData}
+                    className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold flex items-center space-x-1.5 transition-colors shrink-0"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Exportar</span>
+                  </button>
+                </div>
+                {exportSuccess && (
+                  <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center space-x-1 pt-1">
+                    <Check className="w-3.5 h-3.5" />
+                    <span>Arquivo JSON baixado com sucesso!</span>
+                  </span>
+                )}
+              </div>
+
+              {/* Revogação de Consentimento */}
+              <div className="p-4 rounded-2xl bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/60 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <span className="text-xs font-bold text-amber-900 dark:text-amber-200 block">
+                      Revogação do Consentimento (Art. 18, IX)
+                    </span>
+                    <span className="text-[11px] text-amber-700 dark:text-amber-400 block">
+                      Interrompe o tratamento com base no seu consentimento a qualquer momento.
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleRevokeConsent}
+                    disabled={consentRevokedState}
+                    className="px-3 py-1.5 rounded-xl border border-amber-400 text-amber-800 dark:text-amber-300 text-xs font-semibold hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-colors shrink-0 disabled:opacity-50"
+                  >
+                    {consentRevokedState ? 'Revogado' : 'Revogar'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Eliminação Definitiva da Conta */}
+              <div className="p-4 rounded-2xl bg-red-50/50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/60 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <span className="text-xs font-bold text-red-900 dark:text-red-200 block">
+                      Direito à Eliminação / Esquecimento (Art. 18, VI)
+                    </span>
+                    <span className="text-[11px] text-red-700 dark:text-red-400 block">
+                      Exclua permanentemente sua conta, históricos e todo rastro de dados pessoais.
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowDeleteConfirm(true)}
+                    className="px-3 py-1.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold flex items-center space-x-1.5 transition-colors shrink-0"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Excluir Conta</span>
+                  </button>
+                </div>
+              </div>
+
             </div>
           )}
 
-          <div className="flex space-x-2">
+        </div>
+
+        {/* Footer Actions */}
+        <div className="border-t border-slate-100 dark:border-slate-800 pt-4 mt-4 flex items-center justify-between shrink-0">
+          <div>
+            {savedSuccess && (
+              <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center space-x-1">
+                <Check className="w-4 h-4" />
+                <span>Preferências salvas com sucesso!</span>
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center space-x-3">
             <button
               onClick={onClose}
-              className="px-4 py-2 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold transition-colors"
+              className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
             >
               Fechar
             </button>
             <button
-              onClick={handleSave}
-              className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md flex items-center space-x-1.5 transition-all hover:scale-[1.02]"
+              onClick={handleSavePreferences}
+              className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold flex items-center space-x-1.5 shadow-sm transition-colors"
             >
               <Save className="w-4 h-4" />
-              <span>Salvar Alterações</span>
+              <span>Salvar Preferências</span>
             </button>
           </div>
         </div>
 
       </div>
 
-      {/* Confirmation Modal for Permanent Deletion */}
+      {/* Modal de Confirmação de Exclusão da Conta */}
       {showDeleteConfirm && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/80 p-4 animate-in fade-in">
-          <div className="bg-white dark:bg-slate-900 border border-red-200 dark:border-red-900/50 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-4 text-center">
-            <div className="w-12 h-12 rounded-2xl bg-red-100 dark:bg-red-950/60 text-red-600 flex items-center justify-center mx-auto">
-              <Trash2 className="w-6 h-6" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white dark:bg-slate-900 border border-red-200 dark:border-red-900 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4">
+            <div className="w-12 h-12 rounded-2xl bg-red-100 dark:bg-red-950/60 text-red-600 dark:text-red-400 flex items-center justify-center">
+              <AlertTriangle className="w-6 h-6" />
             </div>
-            
-            <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">
-              Confirmar Exclusão de Conta?
-            </h3>
-            
-            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-              Esta ação é **irreversível**. Todos os seus dados pessoais, resumos salvos, simulados, pontuações de XP e posição no ranking serão apagados permanentemente conforme o Direito ao Esquecimento (LGPD Art. 18, VI).
-            </p>
 
-            <div className="flex space-x-2 pt-2">
+            <div className="space-y-1">
+              <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">
+                Confirmar Exclusão Definitiva
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                Esta ação apagará permanentemente todos os seus resumos, notas de simulados, redações e cadastro local e remoto. Esta operação é irreversível.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end space-x-3 pt-2">
               <button
                 onClick={() => setShowDeleteConfirm(false)}
-                className="flex-1 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold hover:bg-slate-100"
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleConfirmDelete}
-                className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold shadow-lg shadow-red-600/30"
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-red-600 hover:bg-red-700 text-white transition-colors"
               >
-                Sim, Excluir Tudo
+                Confirmar Exclusão
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Legal Modal (Terms & Privacy) */}
+      {/* Modal de Termos / Privacidade */}
       <LegalModal
         isOpen={isLegalModalOpen}
         onClose={() => setIsLegalModalOpen(false)}

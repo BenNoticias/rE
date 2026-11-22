@@ -69,9 +69,14 @@ export function MindmapModule({ profile, selectedSubject = 'matematica', onSaved
         nodes: data.nodes || [],
         edges: data.edges || [],
         createdAt: new Date().toISOString(),
+        isSaved: false,
       };
 
       setMindmapData(newMindmap);
+      // Registro automático obrigatório no histórico (v0.8)
+      saveMindmap(newMindmap, false);
+      setSaved(false);
+
       if (newMindmap.nodes.length > 0) {
         setSelectedNode(newMindmap.nodes[0]);
       }
@@ -84,9 +89,12 @@ export function MindmapModule({ profile, selectedSubject = 'matematica', onSaved
 
   const handleSaveMap = () => {
     if (!mindmapData) return;
-    saveMindmap(mindmapData);
-    if (onSavedMindmapAdded) onSavedMindmapAdded(mindmapData);
-    setSaved(true);
+    const isNowSaved = !saved;
+    const updatedMap = { ...mindmapData, isSaved: isNowSaved };
+    saveMindmap(updatedMap, isNowSaved);
+    setMindmapData(updatedMap);
+    if (onSavedMindmapAdded) onSavedMindmapAdded(updatedMap);
+    setSaved(isNowSaved);
   };
 
   return (

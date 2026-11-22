@@ -13,7 +13,8 @@ import {
   RotateCcw, 
   Loader2,
   Award,
-  BookOpen
+  BookOpen,
+  Bookmark
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { SubjectId, SUBJECTS, UserProfile, QuizQuestion, QuizResult } from '@/types';
@@ -39,6 +40,7 @@ export function QuizModule({ profile, selectedSubject = 'matematica', onProfileU
   const [timerSeconds, setTimerSeconds] = useState(300); // 5 min default
   const [isFinished, setIsFinished] = useState(false);
   const [quizResult, setQuizResult] = useState<QuizResult | null>(null);
+  const [quizSaved, setQuizSaved] = useState(false);
   const [error, setError] = useState('');
 
   const currentSubjectObj = SUBJECTS.find(s => s.id === subject) || SUBJECTS[0];
@@ -132,11 +134,14 @@ export function QuizModule({ profile, selectedSubject = 'matematica', onProfileU
       totalQuestions: total,
       xpEarned,
       createdAt: new Date().toISOString(),
+      isSaved: false,
     };
 
     setIsFinished(true);
     setQuizResult(result);
-    saveQuizResult(result);
+    setQuizSaved(false);
+    // Registro automático obrigatório no histórico (v0.8)
+    saveQuizResult(result, false);
     
     // Update User XP & Level
     const updatedProfile = updateUserXP(xpEarned);
@@ -151,6 +156,15 @@ export function QuizModule({ profile, selectedSubject = 'matematica', onProfileU
         origin: { y: 0.6 }
       });
     }
+  };
+
+  const handleToggleSaveQuiz = () => {
+    if (!quizResult) return;
+    const isNowSaved = !quizSaved;
+    const updated = { ...quizResult, isSaved: isNowSaved };
+    saveQuizResult(updated, isNowSaved);
+    setQuizResult(updated);
+    setQuizSaved(isNowSaved);
   };
 
   const formatTime = (totalSec: number) => {
@@ -385,16 +399,30 @@ export function QuizModule({ profile, selectedSubject = 'matematica', onProfileU
               </div>
             </div>
 
-            <button
-              onClick={() => {
-                setQuizData(null);
-                setIsFinished(false);
-              }}
-              className="mt-4 px-5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold inline-flex items-center space-x-1.5"
-            >
-              <RotateCcw className="w-4 h-4" />
-              <span>Fazer Outro Simulado</span>
-            </button>
+            <div className="flex flex-wrap items-center justify-center gap-3 mt-4">
+              <button
+                onClick={() => {
+                  setQuizData(null);
+                  setIsFinished(false);
+                }}
+                className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold inline-flex items-center space-x-1.5 transition-colors"
+              >
+                <RotateCcw className="w-4 h-4" />
+                <span>Fazer Outro Simulado</span>
+              </button>
+
+              <button
+                onClick={handleToggleSaveQuiz}
+                className={`px-5 py-2.5 rounded-xl text-xs font-semibold inline-flex items-center space-x-1.5 border transition-all ${
+                  quizSaved
+                    ? 'bg-amber-500 text-white border-amber-600 shadow-md'
+                    : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
+                }`}
+              >
+                <Bookmark className="w-4 h-4" />
+                <span>{quizSaved ? 'Salvo em Favoritos' : 'Salvar nos Meus Conteúdos'}</span>
+              </button>
+            </div>
           </div>
 
           {/* Gabarito Comentado pela IA */}

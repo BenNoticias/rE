@@ -8,11 +8,27 @@ import {
   GradeLevel, 
   APP_VERSION,
   NotificationItem,
-  EssayCorrectionResult
+  EssayCorrectionResult,
+  UnifiedHistoryItem,
+  HistoryItemType
 } from '@/types';
 import { buildUserExportData } from './security';
 
 const STORAGE_KEYS = {
+  USER_PROFILE: 'the_educator_user_profile',
+  REGISTERED_USERS: 'the_educator_registered_users',
+  SUMMARIES: 'the_educator_summaries',
+  MINDMAPS: 'the_educator_mindmaps',
+  QUIZZES: 'the_educator_quizzes',
+  SCHEDULES: 'the_educator_schedules',
+  LEADERBOARD: 'the_educator_leaderboard',
+  NOTIFICATIONS: 'the_educator_notifications',
+  ESSAYS: 'the_educator_essays',
+  THEME: 'the_educator_theme',
+};
+
+// Legacy keys for seamless migration from Estuda AI
+const LEGACY_STORAGE_KEYS = {
   USER_PROFILE: 'estuda_ai_user_profile',
   REGISTERED_USERS: 'estuda_ai_registered_users',
   SUMMARIES: 'estuda_ai_summaries',
@@ -22,8 +38,19 @@ const STORAGE_KEYS = {
   LEADERBOARD: 'estuda_ai_leaderboard',
   NOTIFICATIONS: 'estuda_ai_notifications',
   ESSAYS: 'estuda_ai_essays',
-  THEME: 'estuda_ai_theme',
 };
+
+function getWithLegacyFallback(newKey: string, oldKey: string): string | null {
+  if (typeof window === 'undefined') return null;
+  const current = localStorage.getItem(newKey);
+  if (current) return current;
+  const legacy = localStorage.getItem(oldKey);
+  if (legacy) {
+    localStorage.setItem(newKey, legacy);
+    return legacy;
+  }
+  return null;
+}
 
 // Known legacy mock IDs to purge from storage
 const LEGACY_MOCK_IDS = new Set(['u1', 'u2', 'u3', 'u4', 'u5']);
@@ -49,13 +76,13 @@ const INITIAL_USER: UserProfile = {
 
 const INITIAL_NOTIFICATIONS: NotificationItem[] = [
   {
-    id: 'notif_v07_welcome',
-    title: 'Plataforma 100% Gratuita (v0.7)',
-    message: 'Bem-vindo ao Estuda AI v0.7! Acesso completo e ilimitado a Redação com IA, Banco Oficial de Vestibulares com resoluções comentadas, simulados e resumos!',
+    id: 'notif_v08_welcome',
+    title: 'The Educator (v0.8) Atualizado!',
+    message: 'Bem-vindo ao The Educator v0.8! Nova área dedicada de Perfil, aba exclusiva de Salvos, gravação automática no histórico e gerenciamento avançado de estudos.',
     type: 'system',
     read: false,
     createdAt: new Date().toISOString(),
-    linkTab: 'redacao'
+    linkTab: 'dashboard'
   },
   {
     id: 'notif_schedule_today',
@@ -83,7 +110,7 @@ const INITIAL_NOTIFICATIONS: NotificationItem[] = [
 export function getUserProfile(): UserProfile {
   if (typeof window === 'undefined') return INITIAL_USER;
   try {
-    const data = localStorage.getItem(STORAGE_KEYS.USER_PROFILE);
+    const data = getWithLegacyFallback(STORAGE_KEYS.USER_PROFILE, LEGACY_STORAGE_KEYS.USER_PROFILE);
     if (!data) {
       saveUserProfile(INITIAL_USER);
       return INITIAL_USER;
@@ -122,7 +149,7 @@ export function saveUserProfile(profile: UserProfile): UserProfile {
 export function getRegisteredUsers(): UserProfile[] {
   if (typeof window === 'undefined') return [];
   try {
-    const data = localStorage.getItem(STORAGE_KEYS.REGISTERED_USERS);
+    const data = getWithLegacyFallback(STORAGE_KEYS.REGISTERED_USERS, LEGACY_STORAGE_KEYS.REGISTERED_USERS);
     if (!data) return [];
     const list: UserProfile[] = JSON.parse(data);
     return list
@@ -234,16 +261,20 @@ export function updateUserXP(xpAmount: number): UserProfile {
 export function getSavedSummaries(): SavedSummary[] {
   if (typeof window === 'undefined') return [];
   try {
-    const data = localStorage.getItem(STORAGE_KEYS.SUMMARIES);
+    const data = getWithLegacyFallback(STORAGE_KEYS.SUMMARIES, LEGACY_STORAGE_KEYS.SUMMARIES);
     return data ? JSON.parse(data) : [];
   } catch {
     return [];
   }
 }
 
-export function saveSummary(summary: SavedSummary): SavedSummary[] {
+export function saveSummary(summary: SavedSummary, markAsSaved: boolean = false): SavedSummary[] {
   const current = getSavedSummaries();
-  const updated = [summary, ...current.filter(s => s.id !== summary.id)];
+  const itemToSave: SavedSummary = {
+    ...summary,
+    isSaved: markAsSaved ? true : (summary.isSaved ?? false)
+  };
+  const updated = [itemToSave, ...current.filter(s => s.id !== summary.id)];
   if (typeof window !== 'undefined') {
     localStorage.setItem(STORAGE_KEYS.SUMMARIES, JSON.stringify(updated));
   }
@@ -265,16 +296,20 @@ export function deleteSummary(id: string): SavedSummary[] {
 export function getSavedMindmaps(): SavedMindmap[] {
   if (typeof window === 'undefined') return [];
   try {
-    const data = localStorage.getItem(STORAGE_KEYS.MINDMAPS);
+    const data = getWithLegacyFallback(STORAGE_KEYS.MINDMAPS, LEGACY_STORAGE_KEYS.MINDMAPS);
     return data ? JSON.parse(data) : [];
   } catch {
     return [];
   }
 }
 
-export function saveMindmap(mindmap: SavedMindmap): SavedMindmap[] {
+export function saveMindmap(mindmap: SavedMindmap, markAsSaved: boolean = false): SavedMindmap[] {
   const current = getSavedMindmaps();
-  const updated = [mindmap, ...current.filter(m => m.id !== mindmap.id)];
+  const itemToSave: SavedMindmap = {
+    ...mindmap,
+    isSaved: markAsSaved ? true : (mindmap.isSaved ?? false)
+  };
+  const updated = [itemToSave, ...current.filter(m => m.id !== mindmap.id)];
   if (typeof window !== 'undefined') {
     localStorage.setItem(STORAGE_KEYS.MINDMAPS, JSON.stringify(updated));
   }
@@ -296,16 +331,29 @@ export function deleteMindmap(id: string): SavedMindmap[] {
 export function getSavedQuizzes(): QuizResult[] {
   if (typeof window === 'undefined') return [];
   try {
-    const data = localStorage.getItem(STORAGE_KEYS.QUIZZES);
+    const data = getWithLegacyFallback(STORAGE_KEYS.QUIZZES, LEGACY_STORAGE_KEYS.QUIZZES);
     return data ? JSON.parse(data) : [];
   } catch {
     return [];
   }
 }
 
-export function saveQuizResult(quiz: QuizResult): QuizResult[] {
+export function saveQuizResult(quiz: QuizResult, markAsSaved: boolean = false): QuizResult[] {
   const current = getSavedQuizzes();
-  const updated = [quiz, ...current.filter(q => q.id !== quiz.id)];
+  const itemToSave: QuizResult = {
+    ...quiz,
+    isSaved: markAsSaved ? true : (quiz.isSaved ?? false)
+  };
+  const updated = [itemToSave, ...current.filter(q => q.id !== quiz.id)];
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(STORAGE_KEYS.QUIZZES, JSON.stringify(updated));
+  }
+  return updated;
+}
+
+export function deleteQuiz(id: string): QuizResult[] {
+  const current = getSavedQuizzes();
+  const updated = current.filter(q => q.id !== id);
   if (typeof window !== 'undefined') {
     localStorage.setItem(STORAGE_KEYS.QUIZZES, JSON.stringify(updated));
   }
@@ -318,16 +366,29 @@ export function saveQuizResult(quiz: QuizResult): QuizResult[] {
 export function getSavedSchedules(): SavedSchedule[] {
   if (typeof window === 'undefined') return [];
   try {
-    const data = localStorage.getItem(STORAGE_KEYS.SCHEDULES);
+    const data = getWithLegacyFallback(STORAGE_KEYS.SCHEDULES, LEGACY_STORAGE_KEYS.SCHEDULES);
     return data ? JSON.parse(data) : [];
   } catch {
     return [];
   }
 }
 
-export function saveSchedule(schedule: SavedSchedule): SavedSchedule[] {
+export function saveSchedule(schedule: SavedSchedule, markAsSaved: boolean = false): SavedSchedule[] {
   const current = getSavedSchedules();
-  const updated = [schedule, ...current.filter(s => s.id !== schedule.id)];
+  const itemToSave: SavedSchedule = {
+    ...schedule,
+    isSaved: markAsSaved ? true : (schedule.isSaved ?? false)
+  };
+  const updated = [itemToSave, ...current.filter(s => s.id !== schedule.id)];
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(STORAGE_KEYS.SCHEDULES, JSON.stringify(updated));
+  }
+  return updated;
+}
+
+export function deleteSchedule(id: string): SavedSchedule[] {
+  const current = getSavedSchedules();
+  const updated = current.filter(s => s.id !== id);
   if (typeof window !== 'undefined') {
     localStorage.setItem(STORAGE_KEYS.SCHEDULES, JSON.stringify(updated));
   }
@@ -335,12 +396,12 @@ export function saveSchedule(schedule: SavedSchedule): SavedSchedule[] {
 }
 
 // --------------------------------------------------------------------------
-// NOTIFICATIONS SYSTEM (v0.7)
+// NOTIFICATIONS SYSTEM (v0.8)
 // --------------------------------------------------------------------------
 export function getNotifications(): NotificationItem[] {
   if (typeof window === 'undefined') return INITIAL_NOTIFICATIONS;
   try {
-    const data = localStorage.getItem(STORAGE_KEYS.NOTIFICATIONS);
+    const data = getWithLegacyFallback(STORAGE_KEYS.NOTIFICATIONS, LEGACY_STORAGE_KEYS.NOTIFICATIONS);
     if (!data) {
       localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(INITIAL_NOTIFICATIONS));
       return INITIAL_NOTIFICATIONS;
@@ -395,25 +456,223 @@ export function clearAllNotifications(): NotificationItem[] {
 }
 
 // --------------------------------------------------------------------------
-// ESSAY CORRECTIONS (v0.7)
+// ESSAY CORRECTIONS (v0.8)
 // --------------------------------------------------------------------------
 export function getSavedEssays(): EssayCorrectionResult[] {
   if (typeof window === 'undefined') return [];
   try {
-    const data = localStorage.getItem(STORAGE_KEYS.ESSAYS);
+    const data = getWithLegacyFallback(STORAGE_KEYS.ESSAYS, LEGACY_STORAGE_KEYS.ESSAYS);
     return data ? JSON.parse(data) : [];
   } catch {
     return [];
   }
 }
 
-export function saveEssayCorrection(essay: EssayCorrectionResult): EssayCorrectionResult[] {
+export function saveEssayCorrection(essay: EssayCorrectionResult, markAsSaved: boolean = false): EssayCorrectionResult[] {
   const current = getSavedEssays();
-  const updated = [essay, ...current.filter(e => e.id !== essay.id)];
+  const itemToSave: EssayCorrectionResult = {
+    ...essay,
+    isSaved: markAsSaved ? true : (essay.isSaved ?? false)
+  };
+  const updated = [itemToSave, ...current.filter(e => e.id !== essay.id)];
   if (typeof window !== 'undefined') {
     localStorage.setItem(STORAGE_KEYS.ESSAYS, JSON.stringify(updated));
   }
   return updated;
+}
+
+export function deleteEssay(id: string): EssayCorrectionResult[] {
+  const current = getSavedEssays();
+  const updated = current.filter(e => e.id !== id);
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(STORAGE_KEYS.ESSAYS, JSON.stringify(updated));
+  }
+  return updated;
+}
+
+// --------------------------------------------------------------------------
+// UNIFIED HISTORY & SAVED HELPERS (v0.8)
+// --------------------------------------------------------------------------
+
+/**
+ * Returns all generated items across modules aggregated into a unified history format,
+ * sorted by creation date descending.
+ */
+export function getAllHistoryItems(): UnifiedHistoryItem[] {
+  const summaries = getSavedSummaries().map(s => ({
+    id: s.id,
+    type: 'summary' as HistoryItemType,
+    title: s.title,
+    subject: s.subject,
+    grade: s.grade,
+    createdAt: s.createdAt,
+    isSaved: !!s.isSaved,
+    data: s,
+  }));
+
+  const mindmaps = getSavedMindmaps().map(m => ({
+    id: m.id,
+    type: 'mindmap' as HistoryItemType,
+    title: m.title,
+    subject: m.subject,
+    grade: m.grade,
+    createdAt: m.createdAt,
+    isSaved: !!m.isSaved,
+    data: m,
+  }));
+
+  const quizzes = getSavedQuizzes().map(q => ({
+    id: q.id,
+    type: 'quiz' as HistoryItemType,
+    title: q.title,
+    subject: q.subject,
+    grade: q.grade,
+    score: q.score,
+    maxScore: 100,
+    createdAt: q.createdAt,
+    isSaved: !!q.isSaved,
+    data: q,
+  }));
+
+  const essays = getSavedEssays().map(e => ({
+    id: e.id,
+    type: 'essay' as HistoryItemType,
+    title: `Redação ${e.examModel.toUpperCase()}: ${e.theme}`,
+    subject: 'portugues',
+    score: e.finalScore,
+    maxScore: e.maxScore,
+    createdAt: e.createdAt,
+    isSaved: !!e.isSaved,
+    data: e,
+  }));
+
+  const schedules = getSavedSchedules().map(sc => ({
+    id: sc.id,
+    type: 'schedule' as HistoryItemType,
+    title: sc.title,
+    grade: sc.grade,
+    createdAt: sc.createdAt,
+    isSaved: !!sc.isSaved,
+    data: sc,
+  }));
+
+  const combined = [...summaries, ...mindmaps, ...quizzes, ...essays, ...schedules];
+  combined.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  return combined;
+}
+
+/**
+ * Returns only explicitly saved/favorited items.
+ */
+export function getSavedItems(): UnifiedHistoryItem[] {
+  return getAllHistoryItems().filter(item => item.isSaved);
+}
+
+/**
+ * Toggles the saved/favorited status of an item.
+ */
+export function toggleItemSaved(type: HistoryItemType, id: string): boolean {
+  if (typeof window === 'undefined') return false;
+
+  let newStatus = false;
+  if (type === 'summary') {
+    const items = getSavedSummaries();
+    const updated = items.map(i => {
+      if (i.id === id) {
+        newStatus = !i.isSaved;
+        return { ...i, isSaved: newStatus };
+      }
+      return i;
+    });
+    localStorage.setItem(STORAGE_KEYS.SUMMARIES, JSON.stringify(updated));
+  } else if (type === 'mindmap') {
+    const items = getSavedMindmaps();
+    const updated = items.map(i => {
+      if (i.id === id) {
+        newStatus = !i.isSaved;
+        return { ...i, isSaved: newStatus };
+      }
+      return i;
+    });
+    localStorage.setItem(STORAGE_KEYS.MINDMAPS, JSON.stringify(updated));
+  } else if (type === 'quiz') {
+    const items = getSavedQuizzes();
+    const updated = items.map(i => {
+      if (i.id === id) {
+        newStatus = !i.isSaved;
+        return { ...i, isSaved: newStatus };
+      }
+      return i;
+    });
+    localStorage.setItem(STORAGE_KEYS.QUIZZES, JSON.stringify(updated));
+  } else if (type === 'essay') {
+    const items = getSavedEssays();
+    const updated = items.map(i => {
+      if (i.id === id) {
+        newStatus = !i.isSaved;
+        return { ...i, isSaved: newStatus };
+      }
+      return i;
+    });
+    localStorage.setItem(STORAGE_KEYS.ESSAYS, JSON.stringify(updated));
+  } else if (type === 'schedule') {
+    const items = getSavedSchedules();
+    const updated = items.map(i => {
+      if (i.id === id) {
+        newStatus = !i.isSaved;
+        return { ...i, isSaved: newStatus };
+      }
+      return i;
+    });
+    localStorage.setItem(STORAGE_KEYS.SCHEDULES, JSON.stringify(updated));
+  }
+  return newStatus;
+}
+
+/**
+ * Deletes a single history item by its type and ID.
+ */
+export function deleteHistoryItem(type: HistoryItemType, id: string): void {
+  if (type === 'summary') deleteSummary(id);
+  else if (type === 'mindmap') deleteMindmap(id);
+  else if (type === 'quiz') deleteQuiz(id);
+  else if (type === 'essay') deleteEssay(id);
+  else if (type === 'schedule') deleteSchedule(id);
+}
+
+/**
+ * Batch deletes a list of history items.
+ */
+export function deleteHistoryBatch(items: { type: HistoryItemType; id: string }[]): void {
+  items.forEach(item => deleteHistoryItem(item.type, item.id));
+}
+
+/**
+ * Deletes history items based on timeframe: 'today', 'week', 'month' or 'all'.
+ */
+export function deleteHistoryByTimeframe(timeframe: 'today' | 'week' | 'month' | 'all'): number {
+  const all = getAllHistoryItems();
+  const now = Date.now();
+  
+  let targetItems: UnifiedHistoryItem[] = [];
+
+  if (timeframe === 'all') {
+    targetItems = all;
+  } else if (timeframe === 'today') {
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const todayMs = startOfToday.getTime();
+    targetItems = all.filter(item => new Date(item.createdAt).getTime() >= todayMs);
+  } else if (timeframe === 'week') {
+    const weekAgoMs = now - 7 * 24 * 60 * 60 * 1000;
+    targetItems = all.filter(item => new Date(item.createdAt).getTime() >= weekAgoMs);
+  } else if (timeframe === 'month') {
+    const monthAgoMs = now - 30 * 24 * 60 * 60 * 1000;
+    targetItems = all.filter(item => new Date(item.createdAt).getTime() >= monthAgoMs);
+  }
+
+  deleteHistoryBatch(targetItems.map(t => ({ type: t.type, id: t.id })));
+  return targetItems.length;
 }
 
 // --------------------------------------------------------------------------
@@ -434,6 +693,7 @@ export function getLeaderboard(): LeaderboardUser[] {
           id: u.id,
           username: username,
           name: username,
+          avatarUrl: u.avatarUrl,
           grade: u.grade || '1_em',
           xp: u.xp || 0,
           level: u.level || 1,
@@ -449,6 +709,7 @@ export function getLeaderboard(): LeaderboardUser[] {
         id: currentProfile.id,
         username: currentUsername,
         name: currentUsername,
+        avatarUrl: currentProfile.avatarUrl,
         grade: currentProfile.grade || '1_em',
         xp: currentProfile.xp || 0,
         level: currentProfile.level || 1,
@@ -476,6 +737,7 @@ export function updateLeaderboardCurrentUser(user: UserProfile) {
       id: user.id,
       username: username,
       name: username,
+      avatarUrl: user.avatarUrl,
       grade: user.grade,
       xp: user.xp || 0,
       level: user.level || 1,

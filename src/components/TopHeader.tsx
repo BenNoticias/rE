@@ -1,14 +1,14 @@
 'use client';
 
 import React from 'react';
-import { 
-  Search, 
-  Flame, 
-  Gem, 
-  ChevronDown, 
-  Moon, 
-  Sun, 
-  Settings 
+import {
+  Search,
+  Flame,
+  Gem,
+  ChevronDown,
+  Moon,
+  Sun,
+  Settings
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { UserProfile } from '@/types';
@@ -35,7 +35,7 @@ export function TopHeader({
 
   return (
     <header className="sticky top-0 z-20 bg-white dark:bg-slate-900 border-b border-slate-200/80 dark:border-slate-800/80 px-6 py-3.5 flex items-center justify-between transition-colors">
-      
+
       {/* Search Input Bar */}
       <div className="flex-1 max-w-md">
         <button
@@ -54,7 +54,7 @@ export function TopHeader({
 
       {/* Right Stats & Profile */}
       <div className="flex items-center space-x-4">
-        
+
         {/* Streak Counter */}
         <div className="flex items-center space-x-1.5 text-xs font-bold text-slate-700 dark:text-slate-300">
           <Flame className="w-4 h-4 text-amber-500 fill-amber-500" />
@@ -88,12 +88,13 @@ export function TopHeader({
           <Settings className="w-4 h-4" />
         </button>
 
-        {/* User Profile Pill */}
+        {/* User Profile Pill - Navega diretamente para a área exclusiva de Perfil (v0.8) */}
         <button
-          onClick={openAuth}
-          className="flex items-center space-x-3 pl-2 pr-1 py-1 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors group"
+          onClick={() => onNavigate ? onNavigate('profile') : openAuth()}
+          className="flex items-center space-x-3 pl-2 pr-1 py-1 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors group cursor-pointer"
+          title="Ver e Editar Meu Perfil"
         >
-          <div className="w-8 h-8 rounded-full bg-[#0a142f] text-white font-bold flex items-center justify-center text-xs shadow-sm">
+          <div className="w-8 h-8 rounded-full bg-blue-600 text-white font-bold flex items-center justify-center text-xs shadow-sm">
             {(profile.username || profile.name || 'E').charAt(0).toUpperCase()}
           </div>
           <div className="text-left hidden sm:block">

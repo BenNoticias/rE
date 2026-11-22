@@ -33,11 +33,12 @@ export function SearchModal({ isOpen, onClose, onNavigate }: SearchModalProps) {
 
   const quickActions = [
     { title: 'Corrigir Redação por IA', tab: 'redacao', icon: PenTool },
-    { title: 'Banco de Questões de Vestibulares', tab: 'vestibulares', icon: GraduationCap },
+    { title: 'Banco Oficial de Vestibulares', tab: 'vestibulares', icon: GraduationCap },
+    { title: 'Meus Conteúdos Salvos', tab: 'saved', icon: BookOpen },
+    { title: 'Histórico de Estudos', tab: 'history', icon: Calendar },
     { title: 'Gerar Resumo em Matemática', tab: 'summary', subject: 'matematica' as SubjectId, icon: BookOpen },
     { title: 'Criar Mapa Mental de História', tab: 'mindmap', subject: 'historia' as SubjectId, icon: MapPin },
     { title: 'Fazer Simulado de Física', tab: 'quiz', subject: 'fisica' as SubjectId, icon: CheckCircle2 },
-    { title: 'Ver Cronograma Semanal', tab: 'schedule', icon: Calendar },
   ];
 
   return (

@@ -219,6 +219,24 @@ export const OFFICIAL_VESTIBULARES_QUESTIONS: PastExamQuestion[] = [
     correctAnswer: 0,
     explanation: 'Gabarito Oficial A.\n\nPasso a passo da resolução:\n1. Tese hobbesiana: No estado de natureza, "o homem é o lobo do homem" (homo homini lupus) devido à busca desenfreada por autopreservação e poder na ausência de lei.\n2. Pacto Social: Pela razão e pelo medo da morte violenta, os indivíduos celebram um contrato em que cedem seu direito de autogoverno à figura do Estado (o Leviatã), dotado de monopólio legítimo da força para assegurar a ordem e a sobrevivência coletiva.'
   },
+  {
+    id: 'enem_2024_soc_bauman',
+    exam: 'ENEM',
+    year: 2024,
+    subject: 'sociologia',
+    topic: 'Cultura, Sociedade Contemporânea e Modernidade Líquida',
+    area: 'Ciências Humanas e Suas Tecnologias',
+    questionText: 'O sociólogo Zygmunt Bauman, ao cunhar o conceito de "modernidade líquida", diagnosticou uma transformação estrutural nas relações sociais da contemporaneidade, contrapondo-a à fase "sólida" do capitalismo industrial. Segundo Bauman, a principal marca das relações humanas no contexto líquido-moderno reside:',
+    options: [
+      'A) na efemeridade dos vínculos afetivos e contratuais, pautados pelo imediatismo, volatilidade e consumo interpessoal descartável.',
+      'B) no fortalecimento inexorável das instituições sindicais tradicionais e na estabilidade vitalícia das carreiras profissionais.',
+      'C) na predominância de valores comunitários coesos herdados da vida rural sobre o individualismo urbano.',
+      'D) na padronização burocrática rígida imposta pelos Estados nacionais soberanos sobre a liberdade de circulação do capital.',
+      'E) na eliminação completa da desigualdade econômica mediante o acesso universal às redes digitais.'
+    ],
+    correctAnswer: 0,
+    explanation: 'Gabarito Oficial A.\n\nPasso a passo da resolução:\n1. Conceito sociológico de Bauman: A modernidade líquida é marcada pela fluidez, desregulamentação e transitoriedade das instituições e dos laços afetivos ("Amor Líquido").\n2. Consumo das relações: As conexões virtuais substituem relacionamentos duradouros e a mercantilização da vida converte as interações humanas em relações de conveniência imediata e descartabilidade.\n3. Distratores: As demais alternativas contradizem a teoria de Bauman (a liquidez desmantela certezas sindicais sólidas e intensifica a insegurança existencial e o individualismo).'
+  },
 
   // ---------------------------------------------------------------------------
   // ITA (Instituto Tecnológico de Aeronáutica)

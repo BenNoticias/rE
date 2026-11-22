@@ -13,7 +13,7 @@ import {
   X,
   ExternalLink
 } from 'lucide-react';
-import { NotificationItem } from '@/types';
+import { NotificationItem, APP_VERSION } from '@/types';
 import { 
   getNotifications, 
   markNotificationAsRead, 
@@ -239,7 +239,7 @@ export function NotificationCenter({ onNavigate }: NotificationCenterProps) {
           {/* Footer */}
           <div className="p-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40 text-center">
             <span className="text-[11px] text-slate-400">
-              Alertas e Notificações em Tempo Real • Estuda AI v0.7
+              Alertas e Notificações em Tempo Real • The Educator {APP_VERSION}
             </span>
           </div>
 

@@ -117,12 +117,15 @@ export function getGradeDescription(grade: GradeLevel): string {
 export function safeParseJson<T>(text: string): T | null {
   if (!text || typeof text !== 'string') return null;
 
-  // 1. Limpeza inicial de blocos markdown
-  const cleaned = text
+  // 1. Limpeza inicial de blocos markdown e formatações residuais
+  let cleaned = text
     .replace(/^```json\s*/i, '')
     .replace(/^```\s*/i, '')
     .replace(/\s*```$/i, '')
     .trim();
+
+  // Remove vírgulas extras antes de fechar arrays ou objetos (JSON syntax fix)
+  cleaned = cleaned.replace(/,\s*([}\]])/g, '$1');
 
   // Tentativa direta
   try {

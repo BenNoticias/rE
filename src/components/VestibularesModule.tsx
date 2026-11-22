@@ -24,11 +24,13 @@ import {
   UserProfile, 
   PastExamQuestion, 
   SUBJECTS, 
-  SubjectId 
+  SubjectId,
+  QuizResult
 } from '@/types';
 import { 
   updateUserXP, 
-  addNotification 
+  addNotification,
+  saveQuizResult
 } from '@/lib/storage';
 import { 
   OFFICIAL_VESTIBULARES_QUESTIONS, 
@@ -150,6 +152,29 @@ export function VestibularesModule({ profile, onProfileUpdated }: VestibularesMo
 
     setIsSimFinished(true);
     setSimScore({ correct, total, xp: earnedXp });
+
+    // Gravação automática no histórico oficial (v0.8)
+    const examQuizResult: QuizResult = {
+      id: `exam_sim_${Date.now()}`,
+      title: `Simulado Vestibular: ${selectedExam.toUpperCase()} ${selectedSubject !== 'all' ? selectedSubject : 'Geral'}`,
+      subject: selectedSubject !== 'all' ? (selectedSubject as SubjectId) : 'matematica',
+      grade: profile.grade,
+      questions: filteredQuestions.map(q => ({
+        id: q.id,
+        question: `[${q.exam} ${q.year}] ${q.questionText}`,
+        options: q.options,
+        correctAnswer: q.correctAnswer,
+        explanation: q.explanation
+      })),
+      userAnswers: filteredQuestions.map(q => simAnswers[q.id] !== undefined ? simAnswers[q.id] : -1),
+      score: Math.round((correct / (total || 1)) * 100),
+      correctCount: correct,
+      totalQuestions: total,
+      xpEarned: earnedXp,
+      createdAt: new Date().toISOString(),
+      isSaved: false,
+    };
+    saveQuizResult(examQuizResult, false);
 
     if (earnedXp > 0) {
       const updated = updateUserXP(earnedXp);

@@ -12,6 +12,8 @@ import { LeaderboardModule } from '@/components/LeaderboardModule';
 import { HistoryModule } from '@/components/HistoryModule';
 import { VestibularesModule } from '@/components/VestibularesModule';
 import { RedacaoModule } from '@/components/RedacaoModule';
+import { SavedModule } from '@/components/SavedModule';
+import { ProfileModule } from '@/components/ProfileModule';
 import { OnboardingModal } from '@/components/OnboardingModal';
 import { SettingsModal } from '@/components/SettingsModal';
 import { AuthModal } from '@/components/AuthModal';
@@ -112,7 +114,7 @@ export default function Home() {
   if (!profile) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#051838] text-white font-sans">
-        <div className="animate-pulse font-bold text-lg">Carregando EstudaAI...</div>
+        <div className="animate-pulse font-bold text-lg">Carregando The Educator...</div>
       </div>
     );
   }
@@ -301,10 +303,21 @@ export default function Home() {
             />
           )}
 
+          {activeTab === 'saved' && (
+            <SavedModule
+              onNavigate={handleNavigate}
+            />
+          )}
+
           {activeTab === 'history' && (
-            <HistoryModule
-              onOpenSummary={() => setActiveTab('summary')}
-              onOpenMindmap={() => setActiveTab('mindmap')}
+            <HistoryModule />
+          )}
+
+          {activeTab === 'profile' && (
+            <ProfileModule
+              profile={profile}
+              onProfileUpdated={(updated) => setProfile(updated)}
+              onLogout={handleDeleteAccount}
             />
           )}
         </main>

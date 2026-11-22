@@ -1,5 +1,5 @@
 -- ==============================================================================
--- ESTUDA AI - ESQUEMA DO SUPABASE & SEED DE QUESTÕES (v0.7)
+-- THE EDUCATOR - ESQUEMA DO SUPABASE & SEED DE QUESTÕES (v0.8)
 -- Execute este script no SQL Editor do seu projeto Supabase:
 -- https://supabase.com/dashboard/project/_/sql
 -- ==============================================================================
@@ -10,12 +10,15 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   username TEXT NOT NULL,
   name TEXT,
   email TEXT,
+  avatar_url TEXT DEFAULT 'avatar_blue',
+  study_goal TEXT,
+  school TEXT,
   grade TEXT DEFAULT '1_em',
   xp INTEGER DEFAULT 0,
   level INTEGER DEFAULT 1,
   streak INTEGER DEFAULT 1,
   consent_timestamp TIMESTAMPTZ DEFAULT NOW(),
-  consent_version TEXT DEFAULT 'v0.7',
+  consent_version TEXT DEFAULT 'v0.8',
   consent_revoked BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -40,11 +43,11 @@ CREATE TABLE IF NOT EXISTS public.past_exam_questions (
   id TEXT PRIMARY KEY,
   exam TEXT NOT NULL,                  -- ex: 'ENEM', 'FUVEST', 'UNICAMP', 'UERJ', 'ITA'
   year INTEGER NOT NULL,               -- ex: 2024, 2023, 2022
-  subject TEXT NOT NULL,               -- ex: 'matematica', 'portugues', 'fisica', 'quimica', 'biologia', 'historia'
-  topic TEXT NOT NULL,                 -- ex: 'Proporcionalidade', 'Termodinâmica', 'Era Vargas'
-  area TEXT NOT NULL,                  -- ex: 'Matemática e Suas Tecnologias'
+  subject TEXT NOT NULL,               -- ex: 'matematica', 'portugues', 'fisica', 'quimica', 'biologia', 'historia', 'filosofia', 'sociologia'
+  topic TEXT NOT NULL,                 -- ex: 'Proporcionalidade', 'Termodinâmica', 'Era Vargas', 'Modernidade Líquida'
+  area TEXT NOT NULL,                  -- ex: 'Matemática e Suas Tecnologias', 'Ciências Humanas'
   question_text TEXT NOT NULL,
-  options JSONB NOT NULL,              -- Array JSON de strings com as 4 ou 5 opções
+  options JSONB NOT NULL,              -- Array JSON de strings com as opções
   correct_answer INTEGER NOT NULL,     -- Índice da resposta correta (0 a 4)
   explanation TEXT NOT NULL,           -- Resolução comentada passo a passo
   created_at TIMESTAMPTZ DEFAULT NOW()
@@ -64,7 +67,28 @@ CREATE POLICY "Leitura pública das questões de vestibulares"
   USING (true);
 
 
--- 3. POVOAMENTO INICIAL (SEED) DE QUESTÕES OFICIAIS COM RESOLUÇÃO COMENTADA
+-- 3. TABELA DE ITENS SALVOS DO ESTUDANTE (v0.8)
+CREATE TABLE IF NOT EXISTS public.user_saved_items (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  type TEXT NOT NULL,                  -- 'summary', 'mindmap', 'quiz', 'essay', 'schedule'
+  title TEXT NOT NULL,
+  subject TEXT,
+  score INTEGER,
+  max_score INTEGER,
+  item_data JSONB NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.user_saved_items ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Gerenciamento de salvos pelo estudante"
+  ON public.user_saved_items FOR ALL
+  USING (true)
+  WITH CHECK (true);
+
+
+-- 4. POVOAMENTO INICIAL (SEED) DE QUESTÕES OFICIAIS COM RESOLUÇÃO COMENTADA
 INSERT INTO public.past_exam_questions (id, exam, year, subject, topic, area, question_text, options, correct_answer, explanation)
 VALUES
 (
@@ -90,6 +114,18 @@ VALUES
   '["A) Contraponto e concessão semântica.", "B) Consequência e conclusão lógica.", "C) Condição prévia necessária para um fato hipotético.", "D) Retificação enfática de um termo equivocado.", "E) Adição cumulativa de argumentos de mesma orientação."]'::jsonb,
   1,
   'Gabarito Oficial B. O conectivo "por conseguinte" é uma conjunção conclusiva/consecutiva que introduz a decorrência lógica dos fatos expostos.'
+),
+(
+  'enem_2024_soc_bauman',
+  'ENEM',
+  2024,
+  'sociologia',
+  'Cultura, Sociedade Contemporânea e Modernidade Líquida',
+  'Ciências Humanas e Suas Tecnologias',
+  'O sociólogo Zygmunt Bauman, ao cunhar o conceito de "modernidade líquida", diagnosticou uma transformação estrutural nas relações sociais da contemporaneidade. Segundo Bauman, a principal marca das relações humanas no contexto líquido-moderno reside:',
+  '["A) na efemeridade dos vínculos afetivos e contratuais, pautados pelo imediatismo, volatilidade e consumo interpessoal descartável.", "B) no fortalecimento inexorável das instituições sindicais tradicionais.", "C) na predominância de valores comunitários coesos herdados da vida rural.", "D) na padronização burocrática rígida imposta pelos Estados nacionais.", "E) na eliminação completa da desigualdade econômica."]'::jsonb,
+  0,
+  'Gabarito Oficial A. Para Bauman, a modernidade líquida dissolve solidez institucional e produz laços humanos fluídos, efêmeros e descartáveis.'
 ),
 (
   'enem_2023_fis_energia',
@@ -144,4 +180,3 @@ ON CONFLICT (id) DO UPDATE SET
   options = EXCLUDED.options,
   correct_answer = EXCLUDED.correct_answer,
   explanation = EXCLUDED.explanation;
-

@@ -17,7 +17,8 @@ import {
   PenTool,
   Check,
   BookOpen,
-  ArrowRight
+  ArrowRight,
+  Bookmark
 } from 'lucide-react';
 import { 
   UserProfile, 
@@ -89,6 +90,7 @@ export function RedacaoModule({ profile, onProfileUpdated }: RedacaoModuleProps)
   const [isEvaluating, setIsEvaluating] = useState<boolean>(false);
   const [evaluationResult, setEvaluationResult] = useState<EssayCorrectionResult | null>(null);
   const [copiedReport, setCopiedReport] = useState<boolean>(false);
+  const [essaySaved, setEssaySaved] = useState<boolean>(false);
 
   // Histórico
   const [savedEssays, setSavedEssays] = useState<EssayCorrectionResult[]>([]);
@@ -165,11 +167,14 @@ export function RedacaoModule({ profile, onProfileUpdated }: RedacaoModuleProps)
         improvements: data.improvements || [],
         suggestedRewrites: data.suggestedRewrites || [],
         generalFeedback: data.generalFeedback || 'Excelente esforço textual.',
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
+        isSaved: false,
       };
 
       setEvaluationResult(result);
-      saveEssayCorrection(result);
+      setEssaySaved(false);
+      // Registro automático obrigatório no histórico (v0.8)
+      saveEssayCorrection(result, false);
       setSavedEssays(getSavedEssays());
 
       // Atribui XP educacional por praticar redação
@@ -194,7 +199,7 @@ export function RedacaoModule({ profile, onProfileUpdated }: RedacaoModuleProps)
 
   const handleCopyReport = () => {
     if (!evaluationResult) return;
-    const text = `ESTUDA AI - RELATÓRIO DE CORREÇÃO DE REDAÇÃO (${evaluationResult.examModel.toUpperCase()})
+    const text = `THE EDUCATOR - RELATÓRIO DE CORREÇÃO DE REDAÇÃO (${evaluationResult.examModel.toUpperCase()})
 Tema: ${evaluationResult.theme}
 Título: ${evaluationResult.essayTitle || 'Sem título'}
 Nota Final: ${evaluationResult.finalScore} / ${evaluationResult.maxScore} (${evaluationResult.assessmentLevel})
@@ -214,6 +219,16 @@ ${evaluationResult.improvements.map(i => `• ${i}`).join('\n')}
     navigator.clipboard.writeText(text);
     setCopiedReport(true);
     setTimeout(() => setCopiedReport(false), 2500);
+  };
+
+  const handleToggleSaveEssay = () => {
+    if (!evaluationResult) return;
+    const isNowSaved = !essaySaved;
+    const updated = { ...evaluationResult, isSaved: isNowSaved };
+    saveEssayCorrection(updated, isNowSaved);
+    setEvaluationResult(updated);
+    setEssaySaved(isNowSaved);
+    setSavedEssays(getSavedEssays());
   };
 
   return (
@@ -550,13 +565,27 @@ ${evaluationResult.improvements.map(i => `• ${i}`).join('\n')}
 
                 {/* Bottom Actions */}
                 <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
-                  <button
-                    onClick={handleCopyReport}
-                    className="flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold transition-colors"
-                  >
-                    {copiedReport ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Share2 className="w-3.5 h-3.5" />}
-                    <span>{copiedReport ? 'Relatório Copiado!' : 'Copiar Relatório Completo'}</span>
-                  </button>
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={handleCopyReport}
+                      className="flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold transition-colors"
+                    >
+                      {copiedReport ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Share2 className="w-3.5 h-3.5" />}
+                      <span>{copiedReport ? 'Relatório Copiado!' : 'Copiar Relatório'}</span>
+                    </button>
+
+                    <button
+                      onClick={handleToggleSaveEssay}
+                      className={`flex items-center space-x-1.5 px-4 py-2 rounded-xl text-xs font-semibold transition-all border ${
+                        essaySaved 
+                          ? 'bg-amber-500 text-white border-amber-600 shadow-sm'
+                          : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-100'
+                      }`}
+                    >
+                      <Bookmark className="w-3.5 h-3.5" />
+                      <span>{essaySaved ? 'Salva em Favoritos' : 'Salvar Redação'}</span>
+                    </button>
+                  </div>
 
                   <button
                     onClick={() => {

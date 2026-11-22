@@ -154,8 +154,11 @@ export async function syncUserProfileToSupabase(profile: UserProfile): Promise<b
       xp: profile.xp || 0,
       level: profile.level || 1,
       streak: profile.streak || 1,
+      avatar_url: profile.avatarUrl || 'avatar_blue',
+      study_goal: profile.studyGoal || '',
+      school: profile.school || '',
       consent_timestamp: profile.consent?.timestamp || new Date().toISOString(),
-      consent_version: profile.consent?.version || 'v0.7',
+      consent_version: profile.consent?.version || 'v0.8',
       consent_revoked: profile.consentRevoked || false,
       updated_at: new Date().toISOString(),
     });

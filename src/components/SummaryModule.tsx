@@ -69,9 +69,13 @@ export function SummaryModule({ profile, selectedSubject = 'matematica', onSaved
         topics: data.topics || [],
         studyTips: data.studyTips || [],
         createdAt: new Date().toISOString(),
+        isSaved: false,
       };
 
       setSummaryData(newSummary);
+      // Registro automático obrigatório no histórico (v0.8)
+      saveSummary(newSummary, false);
+      setSaved(false);
     } catch (err: any) {
       setError(err.message || 'Erro inesperado ao gerar o resumo.');
     } finally {
@@ -106,9 +110,12 @@ ${summaryData.studyTips.map(tip => `- ${tip}`).join('\n')}
 
   const handleSaveSummary = () => {
     if (!summaryData) return;
-    saveSummary(summaryData);
-    if (onSavedSummaryAdded) onSavedSummaryAdded(summaryData);
-    setSaved(true);
+    const isNowSaved = !saved;
+    const updatedSummary = { ...summaryData, isSaved: isNowSaved };
+    saveSummary(updatedSummary, isNowSaved);
+    setSummaryData(updatedSummary);
+    if (onSavedSummaryAdded) onSavedSummaryAdded(updatedSummary);
+    setSaved(isNowSaved);
   };
 
   return (
