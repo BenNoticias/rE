@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { UserProfile, APP_VERSION, UserConsent, GradeLevel } from '@/types';
 import { X, Mail, Lock, LogIn, UserPlus, Sparkles, CheckCircle2, User, AlertCircle } from 'lucide-react';
 import { hashPassword } from '@/lib/security';
+import { getRegisteredUsers } from '@/lib/storage';
 import { signInWithGoogle, signInWithEmail, signUpWithEmail } from '@/lib/supabase';
 import { LegalModal } from './LegalModal';
 
@@ -140,15 +141,23 @@ export function AuthModal({ isOpen, onClose, profile, onLoginSuccess }: AuthModa
       }
 
       const pwHash = await hashPassword(password);
-      const studentUsername = res.profile?.username || res.user.user_metadata?.username || res.user.user_metadata?.name || email.split('@')[0];
+      const cleanEmail = email.trim().toLowerCase();
+      const registered = getRegisteredUsers();
+      const localUser = registered.find(u => (res.user?.id && u.id === res.user.id) || (u.email && u.email.toLowerCase() === cleanEmail));
+
+      const studentUsername = 
+        (res.profile?.username && res.profile.username.trim() && res.profile.username !== 'Estudante' && res.profile.username !== cleanEmail.split('@')[0]) ? res.profile.username.trim() :
+        (localUser?.username && localUser.username.trim() && localUser.username !== 'Estudante' && localUser.username !== cleanEmail.split('@')[0]) ? localUser.username.trim() :
+        (res.user?.user_metadata?.username && res.user.user_metadata.username.trim() && res.user.user_metadata.username !== 'Estudante' && res.user.user_metadata.username !== cleanEmail.split('@')[0]) ? res.user.user_metadata.username.trim() :
+        (res.profile?.username || localUser?.username || res.user?.user_metadata?.username || cleanEmail.split('@')[0]);
 
       onLoginSuccess(
         studentUsername, 
-        email.trim().toLowerCase(), 
+        cleanEmail, 
         pwHash, 
-        res.profile?.consent,
+        res.profile?.consent || localUser?.consent,
         res.user.id,
-        res.profile
+        res.profile || localUser
       );
       setMsg('Autenticado com sucesso!');
       setTimeout(() => {

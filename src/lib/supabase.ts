@@ -185,29 +185,55 @@ export async function signInWithEmail(email: string, password: string): Promise<
       };
     }
 
-    // Busca o perfil do estudante no Supabase
+    // Busca o perfil do estudante no Supabase (por ID ou por e-mail como fallback)
     let dbProfile: UserProfile | null = null;
     try {
-      const { data: profData } = await client
+      let { data: profData } = await client
         .from('profiles')
         .select('*')
         .eq('id', data.user.id)
         .maybeSingle();
 
+      if (!profData && cleanEmail) {
+        const { data: profByEmail } = await client
+          .from('profiles')
+          .select('*')
+          .eq('email', cleanEmail)
+          .maybeSingle();
+
+        if (profByEmail) {
+          profData = profByEmail;
+          // Atualiza o ID no banco para coincidir com o UID oficial do Supabase Auth
+          try {
+            await client.from('profiles').update({ id: data.user.id }).eq('id', profByEmail.id);
+          } catch (updateErr) {
+            console.warn('[Supabase Auth] Aviso ao atualizar id do perfil:', updateErr);
+          }
+        }
+      }
+
+      const userMeta = data.user.user_metadata || {};
+      const resolvedUsername = 
+        (profData?.username && profData.username.trim() && profData.username !== 'Estudante' && profData.username !== cleanEmail.split('@')[0]) ? profData.username.trim() :
+        (userMeta.username && userMeta.username.trim() && userMeta.username !== 'Estudante' && userMeta.username !== cleanEmail.split('@')[0]) ? userMeta.username.trim() :
+        (profData?.username || profData?.name || userMeta.username || userMeta.name || userMeta.full_name || cleanEmail.split('@')[0]);
+
+      const resolvedGrade = (profData?.grade as GradeLevel) || (userMeta.grade as GradeLevel) || '1_em';
+      const resolvedAvatar = profData?.avatar_url || userMeta.avatar_url || 'avatar_blue';
+
       if (profData) {
-        const username = profData.username || profData.name || data.user.user_metadata?.username || cleanEmail.split('@')[0];
         dbProfile = {
-          id: profData.id,
-          username: username,
-          name: username,
+          id: data.user.id,
+          username: resolvedUsername,
+          name: resolvedUsername,
           email: cleanEmail,
-          avatarUrl: profData.avatar_url || 'avatar_blue',
-          grade: (profData.grade as GradeLevel) || (data.user.user_metadata?.grade as GradeLevel) || '1_em',
+          avatarUrl: resolvedAvatar,
+          grade: resolvedGrade,
           xp: Number(profData.xp) || 0,
           level: Number(profData.level) || 1,
           streak: Number(profData.streak) || 1,
-          studyGoal: profData.study_goal || '',
-          school: profData.school || '',
+          studyGoal: profData.study_goal || userMeta.study_goal || '',
+          school: profData.school || userMeta.school || '',
           useCustomDb: false,
           createdAt: profData.created_at || new Date().toISOString(),
           consent: {
@@ -217,6 +243,49 @@ export async function signInWithEmail(email: string, password: string): Promise<
             version: profData.consent_version || APP_VERSION,
           },
         };
+      } else {
+        // Inicializa o registro de perfil no Supabase para garantir persistência contínua
+        dbProfile = {
+          id: data.user.id,
+          username: resolvedUsername,
+          name: resolvedUsername,
+          email: cleanEmail,
+          avatarUrl: resolvedAvatar,
+          grade: resolvedGrade,
+          xp: 0,
+          level: 1,
+          streak: 1,
+          studyGoal: userMeta.study_goal || '',
+          school: userMeta.school || '',
+          useCustomDb: false,
+          createdAt: new Date().toISOString(),
+          consent: {
+            termsAccepted: true,
+            privacyAccepted: true,
+            timestamp: new Date().toISOString(),
+            version: APP_VERSION,
+          },
+        };
+
+        try {
+          await client.from('profiles').upsert({
+            id: data.user.id,
+            username: resolvedUsername,
+            name: resolvedUsername,
+            email: cleanEmail,
+            grade: resolvedGrade,
+            xp: 0,
+            level: 1,
+            streak: 1,
+            avatar_url: resolvedAvatar,
+            consent_timestamp: new Date().toISOString(),
+            consent_version: APP_VERSION,
+            consent_revoked: false,
+            updated_at: new Date().toISOString(),
+          });
+        } catch (initErr) {
+          console.warn('[Supabase Auth] Aviso ao criar perfil inicial pós-login:', initErr);
+        }
       }
     } catch (e) {
       console.warn('[Supabase Auth] Aviso ao carregar perfil do Supabase:', e);
@@ -368,18 +437,47 @@ export async function signOutUser(): Promise<void> {
 }
 
 /**
- * Sincroniza o perfil do usuário na tabela 'profiles' do Supabase
+ * Sincroniza o perfil do usuário tanto no Supabase Auth (user_metadata) 
+ * quanto na tabela pública 'profiles' do banco de dados PostgreSQL.
  */
 export async function syncUserProfileToSupabase(profile: UserProfile): Promise<boolean> {
   const client = getSupabaseClient();
   if (!client) return false;
   try {
-    const username = profile.username || profile.name || 'Estudante';
+    const username = (profile.username || profile.name || '').trim() || 'Estudante';
+    
+    // Obtém o usuário autenticado atualmente para garantir o UID correto
+    let targetId = profile.id;
+    let targetEmail = profile.email;
+
+    try {
+      const { data: { user } } = await client.auth.getUser();
+      if (user) {
+        targetId = user.id;
+        targetEmail = user.email || targetEmail;
+        
+        // Atualiza os metadados do usuário diretamente no Supabase Auth
+        await client.auth.updateUser({
+          data: {
+            username: username,
+            name: username,
+            grade: profile.grade,
+            avatar_url: profile.avatarUrl || 'avatar_blue',
+            study_goal: profile.studyGoal || '',
+            school: profile.school || '',
+          }
+        });
+      }
+    } catch (authMetaErr) {
+      console.warn('[Supabase Auth] Aviso ao atualizar user_metadata:', authMetaErr);
+    }
+
+    // Persiste no banco de dados na tabela 'profiles'
     const { error } = await client.from('profiles').upsert({
-      id: profile.id,
+      id: targetId,
       username: username,
       name: username,
-      email: profile.email,
+      email: targetEmail,
       grade: profile.grade,
       xp: profile.xp || 0,
       level: profile.level || 1,
@@ -388,12 +486,13 @@ export async function syncUserProfileToSupabase(profile: UserProfile): Promise<b
       study_goal: profile.studyGoal || '',
       school: profile.school || '',
       consent_timestamp: profile.consent?.timestamp || new Date().toISOString(),
-      consent_version: profile.consent?.version || 'v0.8',
+      consent_version: profile.consent?.version || APP_VERSION,
       consent_revoked: profile.consentRevoked || false,
       updated_at: new Date().toISOString(),
     });
+
     if (error) {
-      console.warn('[Supabase] Aviso ao sincronizar perfil:', error.message);
+      console.warn('[Supabase] Aviso ao sincronizar perfil no banco:', error.message);
       return false;
     }
     return true;

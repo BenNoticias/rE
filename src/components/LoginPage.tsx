@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { GradeLevel, GRADE_OPTIONS, APP_VERSION, UserConsent, UserProfile } from '@/types';
 import { hashPassword } from '@/lib/security';
+import { getRegisteredUsers } from '@/lib/storage';
 import { signInWithGoogle, signInWithEmail, signUpWithEmail } from '@/lib/supabase';
 import { LegalModal } from './LegalModal';
 
@@ -151,17 +152,26 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
       }
 
       const pwHash = await hashPassword(password);
-      const studentUsername = res.profile?.username || res.user.user_metadata?.username || res.user.user_metadata?.name || email.split('@')[0];
-      const studentGrade = res.profile?.grade || (res.user.user_metadata?.grade as GradeLevel) || grade;
+      const cleanEmail = email.trim().toLowerCase();
+      const registered = getRegisteredUsers();
+      const localUser = registered.find(u => (res.user?.id && u.id === res.user.id) || (u.email && u.email.toLowerCase() === cleanEmail));
+
+      const studentUsername = 
+        (res.profile?.username && res.profile.username.trim() && res.profile.username !== 'Estudante' && res.profile.username !== cleanEmail.split('@')[0]) ? res.profile.username :
+        (localUser?.username && localUser.username.trim() && localUser.username !== 'Estudante' && localUser.username !== cleanEmail.split('@')[0]) ? localUser.username :
+        (res.user?.user_metadata?.username && res.user.user_metadata.username.trim() && res.user.user_metadata.username !== 'Estudante' && res.user.user_metadata.username !== cleanEmail.split('@')[0]) ? res.user.user_metadata.username :
+        (res.profile?.username || localUser?.username || res.user?.user_metadata?.username || cleanEmail.split('@')[0]);
+
+      const studentGrade = res.profile?.grade || localUser?.grade || (res.user?.user_metadata?.grade as GradeLevel) || grade;
 
       onLoginSuccess(
         studentUsername, 
-        email.trim().toLowerCase(), 
+        cleanEmail, 
         studentGrade, 
         pwHash, 
-        res.profile?.consent,
+        res.profile?.consent || localUser?.consent,
         res.user.id,
-        res.profile
+        res.profile || localUser
       );
     }
   };

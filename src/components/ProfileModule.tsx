@@ -50,6 +50,7 @@ export function ProfileModule({ profile, onProfileUpdated, onLogout }: ProfileMo
   const [school, setSchool] = useState(profile.school || '');
   const [selectedAvatar, setSelectedAvatar] = useState(profile.avatarUrl || 'avatar_blue');
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isCustomPhoto = selectedAvatar && (selectedAvatar.startsWith('data:image') || selectedAvatar.startsWith('http'));
@@ -102,11 +103,13 @@ export function ProfileModule({ profile, onProfileUpdated, onLogout }: ProfileMo
     reader.readAsDataURL(file);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    setIsSaving(true);
+    const trimmedUsername = username.trim() || 'Estudante';
     const updated: UserProfile = {
       ...profile,
-      username: username.trim() || 'Estudante',
-      name: username.trim() || 'Estudante',
+      username: trimmedUsername,
+      name: trimmedUsername,
       grade,
       avatarUrl: selectedAvatar,
       studyGoal: studyGoal.trim(),
@@ -114,9 +117,10 @@ export function ProfileModule({ profile, onProfileUpdated, onLogout }: ProfileMo
     };
 
     saveUserProfile(updated);
-    syncUserProfileToSupabase(updated);
+    await syncUserProfileToSupabase(updated);
     onProfileUpdated(updated);
 
+    setIsSaving(false);
     setSavedSuccess(true);
     setTimeout(() => setSavedSuccess(false), 2500);
   };
@@ -396,9 +400,17 @@ export function ProfileModule({ profile, onProfileUpdated, onLogout }: ProfileMo
 
           <button
             onClick={handleSave}
-            className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-500/20 flex items-center space-x-1.5 transition-all hover:scale-105"
+            disabled={isSaving}
+            className={`px-6 py-2.5 rounded-xl text-white text-xs font-bold shadow-md shadow-blue-500/20 flex items-center space-x-1.5 transition-all hover:scale-105 ${
+              isSaving ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
+            }`}
           >
-            {savedSuccess ? (
+            {isSaving ? (
+              <>
+                <Sparkles className="w-4 h-4 animate-spin text-white" />
+                <span>Salvando...</span>
+              </>
+            ) : savedSuccess ? (
               <>
                 <Check className="w-4 h-4 text-emerald-300" />
                 <span>Salvo com Sucesso!</span>

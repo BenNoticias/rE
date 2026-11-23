@@ -39,7 +39,7 @@ export default function Home() {
   const handleAuthSessionUser = async (user: any) => {
     const userEmail = (user.email || '').trim().toLowerCase();
     const metadata = user.user_metadata || {};
-    const metaUsername = metadata.username || metadata.name || metadata.full_name || (userEmail ? userEmail.split('@')[0] : 'Estudante');
+    const metaUsername = metadata.username || metadata.name || metadata.full_name;
     const metaGrade = (metadata.grade as GradeLevel) || '1_em';
 
     // Sincroniza com dados oficiais da tabela 'profiles' no Supabase
@@ -47,7 +47,18 @@ export default function Home() {
     let dbProfile: any = null;
     if (supabase && user.id) {
       try {
-        const { data } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
+        let { data } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
+        if (!data && userEmail) {
+          const { data: byEmail } = await supabase.from('profiles').select('*').eq('email', userEmail).maybeSingle();
+          if (byEmail) {
+            data = byEmail;
+            try {
+              await supabase.from('profiles').update({ id: user.id }).eq('id', byEmail.id);
+            } catch (updateErr) {
+              console.warn('Aviso ao sincronizar ID no perfil:', updateErr);
+            }
+          }
+        }
         if (data) dbProfile = data;
       } catch (err) {
         console.warn('Erro ao carregar perfil do Supabase:', err);
@@ -57,12 +68,18 @@ export default function Home() {
     const registered = getRegisteredUsers();
     const existing = registered.find(u => (u.id && u.id === user.id) || (u.email && u.email.toLowerCase() === userEmail.toLowerCase()));
 
-    const resolvedUsername = dbProfile?.username || dbProfile?.name || existing?.username || existing?.name || metaUsername;
+    // Prioriza o nome customizado do perfil do banco, depois local salvo, depois metadata
+    const resolvedUsername = 
+      (dbProfile?.username && dbProfile.username.trim() && dbProfile.username !== 'Estudante' && dbProfile.username !== userEmail.split('@')[0]) ? dbProfile.username.trim() :
+      (existing?.username && existing.username.trim() && existing.username !== 'Estudante' && existing.username !== userEmail.split('@')[0]) ? existing.username.trim() :
+      (metaUsername && metaUsername.trim() && metaUsername !== 'Estudante' && metaUsername !== userEmail.split('@')[0]) ? metaUsername.trim() :
+      (dbProfile?.username || existing?.username || metaUsername || (userEmail ? userEmail.split('@')[0] : 'Estudante'));
+
     const resolvedGrade = (dbProfile?.grade as GradeLevel) || existing?.grade || metaGrade;
     const resolvedAvatar = dbProfile?.avatar_url || existing?.avatarUrl || metadata.avatar_url || metadata.picture || 'avatar_blue';
 
     const updated: UserProfile = {
-      id: user.id || (existing ? existing.id : 'user_' + Date.now().toString(36)),
+      id: user.id,
       username: resolvedUsername,
       name: resolvedUsername,
       email: userEmail,
@@ -150,34 +167,35 @@ export default function Home() {
     const registered = getRegisteredUsers();
     const existing = registered.find(u => (userId && u.id === userId) || (u.email && u.email.toLowerCase() === cleanEmail));
 
-    const updated: UserProfile = passedProfile ? {
-      ...passedProfile,
-      passwordHash: passwordHash || passedProfile.passwordHash,
-    } : existing ? {
-      ...existing,
-      id: userId || existing.id,
-      username: username || existing.username || existing.name,
-      name: username || existing.name,
-      grade: grade || existing.grade,
-      passwordHash: passwordHash || existing.passwordHash,
-      consent: consent || existing.consent,
-    } : {
-      id: userId || profile.id || ('user_' + Date.now().toString(36)),
-      username: username,
-      name: username,
+    const resolvedUsername = 
+      (passedProfile?.username && passedProfile.username.trim() && passedProfile.username !== 'Estudante' && passedProfile.username !== cleanEmail.split('@')[0]) ? passedProfile.username.trim() :
+      (existing?.username && existing.username.trim() && existing.username !== 'Estudante' && existing.username !== cleanEmail.split('@')[0]) ? existing.username.trim() :
+      (username && username.trim() && username !== 'Estudante' && username !== cleanEmail.split('@')[0]) ? username.trim() :
+      (passedProfile?.username || existing?.username || username || cleanEmail.split('@')[0]);
+
+    const resolvedGrade = passedProfile?.grade || existing?.grade || grade;
+    const resolvedAvatar = passedProfile?.avatarUrl || existing?.avatarUrl || 'avatar_blue';
+
+    const updated: UserProfile = {
+      id: userId || passedProfile?.id || existing?.id || profile.id || ('user_' + Date.now().toString(36)),
+      username: resolvedUsername,
+      name: resolvedUsername,
       email: cleanEmail,
-      passwordHash: passwordHash,
-      grade: grade,
-      xp: profile.xp || 0,
-      streak: profile.streak || 1,
-      level: profile.level || 1,
-      consent: consent || {
+      passwordHash: passwordHash || existing?.passwordHash || passedProfile?.passwordHash,
+      avatarUrl: resolvedAvatar,
+      grade: resolvedGrade,
+      xp: passedProfile?.xp ?? existing?.xp ?? profile.xp ?? 0,
+      streak: passedProfile?.streak ?? existing?.streak ?? profile.streak ?? 1,
+      level: passedProfile?.level ?? existing?.level ?? profile.level ?? 1,
+      studyGoal: passedProfile?.studyGoal || existing?.studyGoal || profile.studyGoal || '',
+      school: passedProfile?.school || existing?.school || profile.school || '',
+      consent: consent || passedProfile?.consent || existing?.consent || {
         termsAccepted: true,
         privacyAccepted: true,
         timestamp: new Date().toISOString(),
         version: APP_VERSION,
       },
-      createdAt: new Date().toISOString(),
+      createdAt: passedProfile?.createdAt || existing?.createdAt || new Date().toISOString(),
       useCustomDb: profile.useCustomDb || false,
       supabaseUrl: profile.supabaseUrl,
       supabaseAnonKey: profile.supabaseAnonKey,
@@ -251,7 +269,19 @@ export default function Home() {
 
   const handleDeleteAccount = () => {
     setIsAuthenticated(false);
-    setProfile(getUserProfile());
+    const guestUser: UserProfile = {
+      id: 'guest_' + Date.now().toString(36),
+      username: 'Estudante',
+      name: 'Estudante',
+      email: '',
+      grade: '1_em',
+      xp: 0,
+      streak: 1,
+      level: 1,
+      useCustomDb: false,
+      createdAt: new Date().toISOString(),
+    };
+    setProfile(guestUser);
   };
 
   return (
