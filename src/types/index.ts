@@ -1,4 +1,4 @@
-export const APP_VERSION = 'v0.9';
+export const APP_VERSION = 'v0.10';
 
 export type GradeLevel = 
   | '6_ef' 
@@ -106,6 +106,7 @@ export interface SavedSummary {
   studyTips: string[];
   createdAt: string;
   isSaved?: boolean;
+  hiddenFromHistory?: boolean;
 }
 
 export interface MindmapNode {
@@ -137,6 +138,7 @@ export interface SavedMindmap {
   edges: MindmapEdge[];
   createdAt: string;
   isSaved?: boolean;
+  hiddenFromHistory?: boolean;
 }
 
 export interface QuizQuestion {
@@ -169,6 +171,7 @@ export interface QuizResult {
   enemDay?: 1 | 2;
   createdAt: string;
   isSaved?: boolean;
+  hiddenFromHistory?: boolean;
 }
 
 export interface ScheduleDay {
@@ -189,6 +192,7 @@ export interface SavedSchedule {
   weeklyPlan: ScheduleDay[];
   createdAt: string;
   isSaved?: boolean;
+  hiddenFromHistory?: boolean;
 }
 
 export interface LeaderboardUser {
@@ -254,6 +258,7 @@ export interface EssayCorrectionResult {
   generalFeedback: string;
   createdAt: string;
   isSaved?: boolean;
+  hiddenFromHistory?: boolean;
 }
 
 export interface PastExamQuestion {
@@ -285,5 +290,6 @@ export interface UnifiedHistoryItem {
   maxScore?: number;
   createdAt: string;
   isSaved: boolean;
+  hiddenFromHistory?: boolean;
   data: any;
 }

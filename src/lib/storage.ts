@@ -507,6 +507,7 @@ export function getAllHistoryItems(): UnifiedHistoryItem[] {
     grade: s.grade,
     createdAt: s.createdAt,
     isSaved: !!s.isSaved,
+    hiddenFromHistory: !!s.hiddenFromHistory,
     data: s,
   }));
 
@@ -518,6 +519,7 @@ export function getAllHistoryItems(): UnifiedHistoryItem[] {
     grade: m.grade,
     createdAt: m.createdAt,
     isSaved: !!m.isSaved,
+    hiddenFromHistory: !!m.hiddenFromHistory,
     data: m,
   }));
 
@@ -531,6 +533,7 @@ export function getAllHistoryItems(): UnifiedHistoryItem[] {
     maxScore: 100,
     createdAt: q.createdAt,
     isSaved: !!q.isSaved,
+    hiddenFromHistory: !!q.hiddenFromHistory,
     data: q,
   }));
 
@@ -543,6 +546,7 @@ export function getAllHistoryItems(): UnifiedHistoryItem[] {
     maxScore: e.maxScore,
     createdAt: e.createdAt,
     isSaved: !!e.isSaved,
+    hiddenFromHistory: !!e.hiddenFromHistory,
     data: e,
   }));
 
@@ -553,19 +557,86 @@ export function getAllHistoryItems(): UnifiedHistoryItem[] {
     grade: sc.grade,
     createdAt: sc.createdAt,
     isSaved: !!sc.isSaved,
+    hiddenFromHistory: !!sc.hiddenFromHistory,
+    data: sc,
+  }));
+
+  const combined = [...summaries, ...mindmaps, ...quizzes, ...essays, ...schedules]
+    .filter(item => !item.hiddenFromHistory);
+  combined.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  return combined;
+}
+
+/**
+ * Returns only explicitly saved/favorited items, completely independent
+ * from history deletions (even if deleted from history, saved items remain).
+ */
+export function getSavedItems(): UnifiedHistoryItem[] {
+  const summaries = getSavedSummaries().filter(s => !!s.isSaved).map(s => ({
+    id: s.id,
+    type: 'summary' as HistoryItemType,
+    title: s.customTitle || s.title,
+    subject: s.subject,
+    grade: s.grade,
+    createdAt: s.createdAt,
+    isSaved: true,
+    hiddenFromHistory: !!s.hiddenFromHistory,
+    data: s,
+  }));
+
+  const mindmaps = getSavedMindmaps().filter(m => !!m.isSaved).map(m => ({
+    id: m.id,
+    type: 'mindmap' as HistoryItemType,
+    title: m.customTitle || m.title,
+    subject: m.subject,
+    grade: m.grade,
+    createdAt: m.createdAt,
+    isSaved: true,
+    hiddenFromHistory: !!m.hiddenFromHistory,
+    data: m,
+  }));
+
+  const quizzes = getSavedQuizzes().filter(q => !!q.isSaved).map(q => ({
+    id: q.id,
+    type: 'quiz' as HistoryItemType,
+    title: q.customTitle || q.title,
+    subject: q.subject,
+    grade: q.grade,
+    score: q.score,
+    maxScore: 100,
+    createdAt: q.createdAt,
+    isSaved: true,
+    hiddenFromHistory: !!q.hiddenFromHistory,
+    data: q,
+  }));
+
+  const essays = getSavedEssays().filter(e => !!e.isSaved).map(e => ({
+    id: e.id,
+    type: 'essay' as HistoryItemType,
+    title: e.customTitle || `Redação ${e.examModel.toUpperCase()}: ${e.theme}`,
+    subject: 'portugues',
+    score: e.finalScore,
+    maxScore: e.maxScore,
+    createdAt: e.createdAt,
+    isSaved: true,
+    hiddenFromHistory: !!e.hiddenFromHistory,
+    data: e,
+  }));
+
+  const schedules = getSavedSchedules().filter(sc => !!sc.isSaved).map(sc => ({
+    id: sc.id,
+    type: 'schedule' as HistoryItemType,
+    title: sc.customTitle || sc.title,
+    grade: sc.grade,
+    createdAt: sc.createdAt,
+    isSaved: true,
+    hiddenFromHistory: !!sc.hiddenFromHistory,
     data: sc,
   }));
 
   const combined = [...summaries, ...mindmaps, ...quizzes, ...essays, ...schedules];
   combined.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   return combined;
-}
-
-/**
- * Returns only explicitly saved/favorited items.
- */
-export function getSavedItems(): UnifiedHistoryItem[] {
-  return getAllHistoryItems().filter(item => item.isSaved);
 }
 
 /**
@@ -631,17 +702,63 @@ export function toggleItemSaved(type: HistoryItemType, id: string): boolean {
 
 /**
  * Deletes a single history item by its type and ID.
+ * CRITICAL RULE (v0.10): If the item is marked as saved (isSaved === true),
+ * it is ONLY hidden from the history list (hiddenFromHistory: true),
+ * preserving it completely intact in the "Salvos" tab!
  */
 export function deleteHistoryItem(type: HistoryItemType, id: string): void {
-  if (type === 'summary') deleteSummary(id);
-  else if (type === 'mindmap') deleteMindmap(id);
-  else if (type === 'quiz') deleteQuiz(id);
-  else if (type === 'essay') deleteEssay(id);
-  else if (type === 'schedule') deleteSchedule(id);
+  if (typeof window === 'undefined') return;
+
+  if (type === 'summary') {
+    const items = getSavedSummaries();
+    const target = items.find(i => i.id === id);
+    if (target?.isSaved) {
+      const updated = items.map(i => i.id === id ? { ...i, hiddenFromHistory: true } : i);
+      localStorage.setItem(STORAGE_KEYS.SUMMARIES, JSON.stringify(updated));
+    } else {
+      deleteSummary(id);
+    }
+  } else if (type === 'mindmap') {
+    const items = getSavedMindmaps();
+    const target = items.find(i => i.id === id);
+    if (target?.isSaved) {
+      const updated = items.map(i => i.id === id ? { ...i, hiddenFromHistory: true } : i);
+      localStorage.setItem(STORAGE_KEYS.MINDMAPS, JSON.stringify(updated));
+    } else {
+      deleteMindmap(id);
+    }
+  } else if (type === 'quiz') {
+    const items = getSavedQuizzes();
+    const target = items.find(i => i.id === id);
+    if (target?.isSaved) {
+      const updated = items.map(i => i.id === id ? { ...i, hiddenFromHistory: true } : i);
+      localStorage.setItem(STORAGE_KEYS.QUIZZES, JSON.stringify(updated));
+    } else {
+      deleteQuiz(id);
+    }
+  } else if (type === 'essay') {
+    const items = getSavedEssays();
+    const target = items.find(i => i.id === id);
+    if (target?.isSaved) {
+      const updated = items.map(i => i.id === id ? { ...i, hiddenFromHistory: true } : i);
+      localStorage.setItem(STORAGE_KEYS.ESSAYS, JSON.stringify(updated));
+    } else {
+      deleteEssay(id);
+    }
+  } else if (type === 'schedule') {
+    const items = getSavedSchedules();
+    const target = items.find(i => i.id === id);
+    if (target?.isSaved) {
+      const updated = items.map(i => i.id === id ? { ...i, hiddenFromHistory: true } : i);
+      localStorage.setItem(STORAGE_KEYS.SCHEDULES, JSON.stringify(updated));
+    } else {
+      deleteSchedule(id);
+    }
+  }
 }
 
 /**
- * Batch deletes a list of history items.
+ * Batch deletes a list of history items, preserving saved ones in "Salvos".
  */
 export function deleteHistoryBatch(items: { type: HistoryItemType; id: string }[]): void {
   items.forEach(item => deleteHistoryItem(item.type, item.id));
@@ -649,6 +766,7 @@ export function deleteHistoryBatch(items: { type: HistoryItemType; id: string }[
 
 /**
  * Deletes history items based on timeframe: 'today', 'week', 'month' or 'all'.
+ * Preserves all favorited items in "Salvos" while removing/hiding from History.
  */
 export function deleteHistoryByTimeframe(timeframe: 'today' | 'week' | 'month' | 'all'): number {
   const all = getAllHistoryItems();

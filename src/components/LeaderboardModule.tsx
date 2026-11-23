@@ -10,44 +10,90 @@ interface LeaderboardModuleProps {
   profile: UserProfile;
 }
 
+const AVATAR_PRESETS = [
+  { id: 'avatar_blue', gradient: 'from-blue-600 to-indigo-700', emoji: '🎓' },
+  { id: 'avatar_emerald', gradient: 'from-emerald-500 to-teal-700', emoji: '🔬' },
+  { id: 'avatar_amber', gradient: 'from-amber-500 to-orange-600', emoji: '💡' },
+  { id: 'avatar_purple', gradient: 'from-purple-600 to-pink-600', emoji: '🚀' },
+  { id: 'avatar_cyan', gradient: 'from-cyan-500 to-blue-600', emoji: '📚' },
+  { id: 'avatar_rose', gradient: 'from-rose-500 to-red-600', emoji: '✍️' },
+  { id: 'avatar_violet', gradient: 'from-violet-600 to-purple-800', emoji: '🏛️' },
+  { id: 'avatar_slate', gradient: 'from-slate-700 to-zinc-900', emoji: '⚡' },
+];
+
 export function LeaderboardModule({ profile }: LeaderboardModuleProps) {
   const [users, setUsers] = useState<LeaderboardUser[]>([]);
   const [filter, setFilter] = useState<'all' | 'same_grade'>('all');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // 1. Get local real registered users
+    // 1. Get local registered users e garante que o usuário atual tenha a foto mais recente
     const localUsers = getLeaderboard();
-    setUsers(localUsers);
+    const currentUsername = profile.username || profile.name || 'Estudante';
+    
+    // Atualiza ou insere o usuário atual com o avatarUrl mais recente do perfil
+    const mergedLocal = localUsers.map(u => {
+      if (u.id === profile.id) {
+        return {
+          ...u,
+          username: currentUsername,
+          name: currentUsername,
+          avatarUrl: profile.avatarUrl,
+          xp: profile.xp || 0,
+          level: profile.level || 1,
+          streak: profile.streak || 1,
+          grade: profile.grade,
+          isCurrentUser: true,
+        };
+      }
+      return u;
+    });
 
-    // 2. If Supabase is active, fetch real remote database users
+    if (!mergedLocal.some(u => u.id === profile.id)) {
+      mergedLocal.push({
+        id: profile.id,
+        username: currentUsername,
+        name: currentUsername,
+        grade: profile.grade,
+        xp: profile.xp || 0,
+        level: profile.level || 1,
+        streak: profile.streak || 1,
+        avatarUrl: profile.avatarUrl,
+        isCurrentUser: true,
+      });
+    }
+
+    mergedLocal.sort((a, b) => b.xp - a.xp);
+    setUsers(mergedLocal);
+
+    // 2. Se o Supabase estiver ativo, busca os usuários remotos com avatar atualizado
     if (profile.useCustomDb && profile.supabaseUrl && profile.supabaseAnonKey) {
       setLoading(true);
       fetchSupabaseLeaderboard()
         .then((remoteUsers) => {
           if (remoteUsers && remoteUsers.length > 0) {
-            // Merge remote users with local current user
             const mergedMap = new Map<string, LeaderboardUser>();
             remoteUsers.forEach(u => mergedMap.set(u.id, {
               ...u,
               username: u.username || u.name,
               name: u.username || u.name,
+              avatarUrl: u.avatarUrl,
               isCurrentUser: u.id === profile.id,
             }));
-            // Ensure current user is present
-            if (!mergedMap.has(profile.id)) {
-              const currentUsername = profile.username || profile.name || 'Estudante';
-              mergedMap.set(profile.id, {
-                id: profile.id,
-                username: currentUsername,
-                name: currentUsername,
-                grade: profile.grade,
-                xp: profile.xp || 0,
-                level: profile.level || 1,
-                streak: profile.streak || 1,
-                isCurrentUser: true,
-              });
-            }
+
+            // Garante que o usuário atual tem prioridade com os dados locais mais recentes (foto, xp, etc)
+            mergedMap.set(profile.id, {
+              id: profile.id,
+              username: currentUsername,
+              name: currentUsername,
+              grade: profile.grade,
+              xp: profile.xp || 0,
+              level: profile.level || 1,
+              streak: profile.streak || 1,
+              avatarUrl: profile.avatarUrl,
+              isCurrentUser: true,
+            });
+
             const sorted = Array.from(mergedMap.values()).sort((a, b) => b.xp - a.xp);
             setUsers(sorted);
           }
@@ -68,20 +114,50 @@ export function LeaderboardModule({ profile }: LeaderboardModuleProps) {
 
   const top3 = filteredUsers.slice(0, 3);
 
+  // Renderizador flexível de avatar (foto personalizada do dispositivo, preset ou iniciais)
+  const renderUserAvatar = (user: LeaderboardUser, sizeClasses: string, textClasses: string = 'text-sm') => {
+    const isImage = user.avatarUrl && (user.avatarUrl.startsWith('data:image') || user.avatarUrl.startsWith('http'));
+    const preset = AVATAR_PRESETS.find(p => p.id === user.avatarUrl);
+
+    if (isImage) {
+      return (
+        <img
+          src={user.avatarUrl}
+          alt={user.username || user.name}
+          className={`${sizeClasses} rounded-full object-cover shadow-sm`}
+        />
+      );
+    }
+
+    if (preset) {
+      return (
+        <div className={`${sizeClasses} rounded-full bg-gradient-to-br ${preset.gradient} flex items-center justify-center text-lg shadow-sm text-white`}>
+          {preset.emoji}
+        </div>
+      );
+    }
+
+    return (
+      <div className={`${sizeClasses} rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-bold flex items-center justify-center ${textClasses} shadow-sm`}>
+        {(user.username || user.name || 'E').charAt(0).toUpperCase()}
+      </div>
+    );
+  };
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       
       {/* Banner */}
-      <div className="p-6 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 text-white shadow-xl relative overflow-hidden">
+      <div className="p-6 rounded-3xl bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 text-white shadow-xl relative overflow-hidden">
         <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-xs font-semibold text-white mb-2">
               <Trophy className="w-3.5 h-3.5" />
-              <span>Classificação de Estudantes</span>
+              <span>Classificação de Estudantes • v0.10</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold">Ranking Oficial de Alunos</h1>
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Ranking Oficial de Alunos</h1>
             <p className="text-sm text-amber-100 mt-1 max-w-xl">
-              Pontuação de XP e posições em tempo real. Identificação por Nome de Usuário para proteção de privacidade (LGPD).
+              Pontuação de XP, fotos de perfil e posições sincronizadas em tempo real. Identificação protegida por LGPD.
             </p>
           </div>
 
@@ -116,11 +192,9 @@ export function LeaderboardModule({ profile }: LeaderboardModuleProps) {
               
               {/* 2nd Place */}
               {top3[1] && (
-                <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-md text-center flex flex-col items-center space-y-2 order-1">
+                <div className="p-4 sm:p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-md text-center flex flex-col items-center space-y-2 order-1">
                   <div className="relative">
-                    <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center font-bold text-slate-700 dark:text-slate-200 text-lg border-2 border-slate-300">
-                      {(top3[1].username || top3[1].name || 'A').charAt(0).toUpperCase()}
-                    </div>
+                    {renderUserAvatar(top3[1], 'w-12 h-12 sm:w-16 sm:h-16 border-2 border-slate-300', 'text-lg')}
                     <div className="absolute -bottom-2 -right-1 w-6 h-6 rounded-full bg-slate-400 text-white font-bold text-xs flex items-center justify-center shadow">
                       2º
                     </div>
@@ -141,12 +215,10 @@ export function LeaderboardModule({ profile }: LeaderboardModuleProps) {
 
               {/* 1st Place (Center) */}
               {top3[0] && (
-                <div className="p-5 sm:p-6 rounded-2xl bg-gradient-to-b from-amber-500/10 to-amber-500/20 dark:from-amber-950/40 dark:to-amber-900/20 border-2 border-amber-400 dark:border-amber-600 shadow-xl text-center flex flex-col items-center space-y-2.5 order-2 -translate-y-2">
+                <div className="p-5 sm:p-6 rounded-3xl bg-gradient-to-b from-amber-500/10 to-amber-500/20 dark:from-amber-950/40 dark:to-amber-900/20 border-2 border-amber-400 dark:border-amber-600 shadow-xl text-center flex flex-col items-center space-y-2.5 order-2 -translate-y-2">
                   <div className="relative">
                     <Crown className="w-6 h-6 text-amber-500 absolute -top-5 left-1/2 -translate-x-1/2 animate-bounce" />
-                    <div className="w-14 h-14 sm:w-20 sm:h-20 rounded-full bg-gradient-to-tr from-amber-400 to-yellow-300 flex items-center justify-center font-black text-amber-950 text-xl border-4 border-amber-300 shadow-lg">
-                      {(top3[0].username || top3[0].name || 'A').charAt(0).toUpperCase()}
-                    </div>
+                    {renderUserAvatar(top3[0], 'w-14 h-14 sm:w-20 sm:h-20 border-4 border-amber-300 shadow-lg', 'text-xl')}
                     <div className="absolute -bottom-2 -right-1 w-7 h-7 rounded-full bg-amber-500 text-white font-black text-xs flex items-center justify-center shadow-lg">
                       1º
                     </div>
@@ -167,11 +239,9 @@ export function LeaderboardModule({ profile }: LeaderboardModuleProps) {
 
               {/* 3rd Place */}
               {top3[2] && (
-                <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-md text-center flex flex-col items-center space-y-2 order-3">
+                <div className="p-4 sm:p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-md text-center flex flex-col items-center space-y-2 order-3">
                   <div className="relative">
-                    <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-amber-800/20 flex items-center justify-center font-bold text-amber-800 dark:text-amber-300 text-lg border-2 border-amber-700/40">
-                      {(top3[2].username || top3[2].name || 'A').charAt(0).toUpperCase()}
-                    </div>
+                    {renderUserAvatar(top3[2], 'w-12 h-12 sm:w-16 sm:h-16 border-2 border-amber-700/40', 'text-lg')}
                     <div className="absolute -bottom-2 -right-1 w-6 h-6 rounded-full bg-amber-700 text-white font-bold text-xs flex items-center justify-center shadow">
                       3º
                     </div>
@@ -199,7 +269,7 @@ export function LeaderboardModule({ profile }: LeaderboardModuleProps) {
               {filteredUsers.map((user, idx) => (
                 <div
                   key={user.id}
-                  className={`p-6 rounded-2xl text-center flex flex-col items-center space-y-2.5 min-w-[180px] sm:min-w-[220px] transition-all shadow-md ${
+                  className={`p-6 rounded-3xl text-center flex flex-col items-center space-y-2.5 min-w-[180px] sm:min-w-[220px] transition-all shadow-md ${
                     idx === 0
                       ? 'bg-gradient-to-b from-amber-500/10 to-amber-500/20 dark:from-amber-950/40 dark:to-amber-900/20 border-2 border-amber-400 dark:border-amber-600'
                       : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800'
@@ -207,13 +277,7 @@ export function LeaderboardModule({ profile }: LeaderboardModuleProps) {
                 >
                   <div className="relative">
                     {idx === 0 && <Crown className="w-5 h-5 text-amber-500 absolute -top-4 left-1/2 -translate-x-1/2" />}
-                    <div className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full flex items-center justify-center font-extrabold text-lg shadow ${
-                      idx === 0
-                        ? 'bg-gradient-to-tr from-amber-400 to-yellow-300 text-amber-950 border-2 border-amber-300'
-                        : 'bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-100 border border-slate-300'
-                    }`}>
-                      {(user.username || user.name || 'A').charAt(0).toUpperCase()}
-                    </div>
+                    {renderUserAvatar(user, 'w-14 h-14 sm:w-16 sm:h-16 shadow', 'text-lg')}
                     <div className={`absolute -bottom-1.5 -right-1 w-6 h-6 rounded-full font-bold text-xs flex items-center justify-center text-white shadow ${
                       idx === 0 ? 'bg-amber-500' : 'bg-slate-400'
                     }`}>
@@ -242,7 +306,7 @@ export function LeaderboardModule({ profile }: LeaderboardModuleProps) {
 
       {/* Empty State when 0 users match */}
       {filteredUsers.length === 0 && (
-        <div className="p-8 sm:p-12 text-center bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
+        <div className="p-8 sm:p-12 text-center bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
           <div className="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto">
             <Trophy className="w-6 h-6" />
           </div>
@@ -257,7 +321,7 @@ export function LeaderboardModule({ profile }: LeaderboardModuleProps) {
 
       {/* Real Users Table */}
       {filteredUsers.length > 0 && (
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
           <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
             <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider text-[11px] flex items-center space-x-2">
               <Users className="w-4 h-4 text-slate-500" />
@@ -287,9 +351,7 @@ export function LeaderboardModule({ profile }: LeaderboardModuleProps) {
                       #{idx + 1}
                     </span>
 
-                    <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-bold flex items-center justify-center text-xs shadow-sm">
-                      {displayName.charAt(0).toUpperCase()}
-                    </div>
+                    {renderUserAvatar(user, 'w-10 h-10', 'text-xs')}
 
                     <div>
                       <div className="flex items-center space-x-2">

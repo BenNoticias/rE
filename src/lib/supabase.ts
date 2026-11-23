@@ -214,6 +214,7 @@ export async function fetchSupabaseLeaderboard(): Promise<LeaderboardUser[] | nu
           xp: Number(item.xp) || 0,
           level: Number(item.level) || 1,
           streak: Number(item.streak) || 1,
+          avatarUrl: item.avatar_url || null,
         };
       });
   } catch (err) {

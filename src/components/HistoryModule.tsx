@@ -377,11 +377,11 @@ export function HistoryModule() {
                 Confirmar Exclusão de Histórico
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                {confirmAction === 'all' && 'Tem certeza de que deseja apagar TODO o seu histórico de estudos? Esta ação não pode ser desfeita.'}
-                {confirmAction === 'today' && 'Deseja apagar todos os registros gerados hoje?'}
-                {confirmAction === 'week' && 'Deseja apagar todos os registros gerados nos últimos 7 dias?'}
-                {confirmAction === 'month' && 'Deseja apagar todos os registros gerados nos últimos 30 dias?'}
-                {confirmAction === 'batch' && `Deseja apagar os ${selectedIds.size} registros selecionados?`}
+                {confirmAction === 'all' && 'Tem certeza de que deseja apagar TODO o seu histórico de estudos? (Seus conteúdos favoritados na aba Salvos permanecerão preservados).'}
+                {confirmAction === 'today' && 'Deseja apagar todos os registros gerados hoje? (Itens salvos permanecerão na aba Salvos).'}
+                {confirmAction === 'week' && 'Deseja apagar todos os registros gerados nos últimos 7 dias? (Itens salvos permanecerão na aba Salvos).'}
+                {confirmAction === 'month' && 'Deseja apagar todos os registros gerados nos últimos 30 dias? (Itens salvos permanecerão na aba Salvos).'}
+                {confirmAction === 'batch' && `Deseja apagar os ${selectedIds.size} registros selecionados do histórico? (Itens salvos permanecerão na aba Salvos).`}
               </p>
             </div>
 

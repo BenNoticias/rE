@@ -17,7 +17,9 @@ import {
   Settings,
   Coffee,
   BrainCircuit,
-  Sliders
+  Sliders,
+  Upload,
+  Music
 } from 'lucide-react';
 import { UserProfile, SavedSchedule, SUBJECTS } from '@/types';
 import { saveSchedule } from '@/lib/storage';
@@ -28,14 +30,15 @@ interface ScheduleModuleProps {
   onSavedScheduleAdded?: (schedule: SavedSchedule) => void;
 }
 
-type SoundOption = 'bell' | 'chime' | 'harp' | 'beep' | 'digital';
+type SoundOption = 'bell' | 'chime' | 'harp' | 'beep' | 'digital' | 'custom';
 
 const SOUND_LABELS: { id: SoundOption; label: string; desc: string }[] = [
   { id: 'bell', label: 'Sino Tibetano', desc: 'Tom zen profundo e relaxante' },
   { id: 'chime', label: 'Carrilhão Harmônico', desc: 'Três notas ascendentes brilhantes' },
   { id: 'harp', label: 'Acordes de Harpa', desc: 'Arpejo melódico e suave' },
   { id: 'beep', label: 'Bip Eletrônico', desc: 'Alerta digital moderno e focado' },
-  { id: 'digital', label: 'Synth Moderno', desc: 'Tom futurista e estimulante' }
+  { id: 'digital', label: 'Synth Moderno', desc: 'Tom futurista e estimulante' },
+  { id: 'custom', label: '📁 Áudio do Dispositivo', desc: 'Arquivo de áudio personalizado (MP3, WAV, OGG)' }
 ];
 
 export function ScheduleModule({ profile, onSavedScheduleAdded }: ScheduleModuleProps) {
@@ -58,9 +61,92 @@ export function ScheduleModule({ profile, onSavedScheduleAdded }: ScheduleModule
   const [isSoundMuted, setIsSoundMuted] = useState(false);
   const [showPomodoroConfig, setShowPomodoroConfig] = useState(false);
 
-  // Web Audio Synth Function
+  // Áudio personalizado do dispositivo
+  const [customAudioData, setCustomAudioData] = useState<string | null>(null);
+  const [customAudioName, setCustomAudioName] = useState<string>('');
+  const audioFileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedAudio = localStorage.getItem('pomodoro_custom_audio');
+      const savedAudioName = localStorage.getItem('pomodoro_custom_audio_name');
+      if (savedAudio) {
+        setCustomAudioData(savedAudio);
+        setCustomAudioName(savedAudioName || 'meu_alarme.mp3');
+      }
+    }
+  }, []);
+
+  const handleAudioFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64Audio = event.target?.result as string;
+      setCustomAudioData(base64Audio);
+      setCustomAudioName(file.name);
+      setSelectedSound('custom');
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('pomodoro_custom_audio', base64Audio);
+          localStorage.setItem('pomodoro_custom_audio_name', file.name);
+        } catch (err) {
+          console.warn('Não foi possível persistir áudio no localStorage (limite excedido), ativo apenas na sessão.', err);
+        }
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Sound Function (Suporta sintetizador e áudio do dispositivo)
   const playAlarmSound = (soundType: SoundOption = selectedSound) => {
     if (isSoundMuted) return;
+
+    // Se a opção selecionada for áudio personalizado do dispositivo
+    if (soundType === 'custom') {
+      if (customAudioData) {
+        try {
+          const audio = new Audio(customAudioData);
+          audio.play().catch(err => {
+            console.warn('Erro ao tocar áudio personalizado, reproduzindo som padrão:', err);
+            playDefaultBell();
+          });
+          return;
+        } catch (e) {
+          console.warn('Erro ao carregar áudio:', e);
+        }
+      } else {
+        alert('Nenhum arquivo de áudio carregado. Clique em "Escolher áudio do dispositivo".');
+        audioFileInputRef.current?.click();
+        return;
+      }
+    }
+
+    playDefaultSynth(soundType);
+  };
+
+  const playDefaultBell = () => {
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(587.33, now);
+      osc.frequency.exponentialRampToValueAtTime(293.66, now + 2.5);
+      gain.gain.setValueAtTime(0.4, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 2.5);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 2.5);
+    } catch {}
+  };
+
+  const playDefaultSynth = (soundType: SoundOption) => {
     try {
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
       if (!AudioCtx) return;
@@ -80,7 +166,7 @@ export function ScheduleModule({ profile, onSavedScheduleAdded }: ScheduleModule
         osc.start(now);
         osc.stop(now + 2.5);
       } else if (soundType === 'chime') {
-        const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+        const notes = [523.25, 659.25, 783.99, 1046.50];
         notes.forEach((freq, idx) => {
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
@@ -124,7 +210,6 @@ export function ScheduleModule({ profile, onSavedScheduleAdded }: ScheduleModule
           osc.stop(start + 0.12);
         });
       } else {
-        // Digital synth tone
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.type = 'sawtooth';
@@ -259,7 +344,7 @@ export function ScheduleModule({ profile, onSavedScheduleAdded }: ScheduleModule
           <div>
             <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-xs font-semibold text-white mb-2">
               <Calendar className="w-3.5 h-3.5" />
-              <span>Planejador Inteligente v0.9</span>
+              <span>Planejador Inteligente v0.10</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Cronograma Inteligente & Pomodoro</h1>
             <p className="text-sm text-blue-100 mt-1 max-w-xl">
@@ -553,6 +638,38 @@ export function ScheduleModule({ profile, onSavedScheduleAdded }: ScheduleModule
                     >
                       Testar
                     </button>
+                  </div>
+
+                  {/* Input oculto e botão para selecionar áudio do dispositivo */}
+                  <input
+                    type="file"
+                    ref={audioFileInputRef}
+                    onChange={handleAudioFileUpload}
+                    accept="audio/mp3, audio/wav, audio/ogg, audio/mpeg, audio/mp4, audio/x-m4a, audio/*"
+                    className="hidden"
+                  />
+
+                  <div className="pt-1.5 space-y-1.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        audioFileInputRef.current?.click();
+                      }}
+                      className="w-full py-2 px-3 rounded-xl bg-slate-900 hover:bg-slate-750 text-indigo-300 hover:text-white border border-dashed border-indigo-500/40 text-xs font-semibold flex items-center justify-center space-x-2 transition-all"
+                    >
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>{customAudioName ? `Trocar Áudio: ${customAudioName}` : 'Escolher Áudio do Dispositivo (MP3, WAV, OGG, M4A)'}</span>
+                    </button>
+
+                    {customAudioName && (
+                      <div className="flex items-center justify-between text-[11px] text-slate-300 bg-slate-900/80 px-2.5 py-1 rounded-lg border border-slate-800">
+                        <span className="truncate max-w-[190px] flex items-center space-x-1.5">
+                          <Music className="w-3 h-3 text-indigo-400 shrink-0" />
+                          <span className="truncate font-mono">{customAudioName}</span>
+                        </span>
+                        <span className="text-emerald-400 font-bold text-[10px] shrink-0">Áudio Ativo</span>
+                      </div>
+                    )}
                   </div>
                 </div>
 
