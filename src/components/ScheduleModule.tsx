@@ -411,7 +411,7 @@ export function ScheduleModule({ profile, onSavedScheduleAdded }: ScheduleModule
           <div>
             <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-xs font-semibold text-white mb-2">
               <Calendar className="w-3.5 h-3.5" />
-              <span>Planejador Inteligente v0.10</span>
+              <span>Planejador Inteligente v0.11</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Cronograma Inteligente & Pomodoro</h1>
             <p className="text-sm text-blue-100 mt-1 max-w-xl">

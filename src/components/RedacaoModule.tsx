@@ -258,7 +258,7 @@ ${evaluationResult.improvements.map(i => `• ${i}`).join('\n')}
         <div className="relative z-10 max-w-3xl space-y-3">
           <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-blue-500/20 text-blue-300 text-xs font-semibold border border-blue-400/30">
             <Sparkles className="w-3.5 h-3.5 text-blue-400" />
-            <span>Módulo de Redação IA • v0.10</span>
+            <span>Módulo de Redação IA • v0.11</span>
           </div>
           <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight">
             Laboratório de Redação com Inteligência Artificial

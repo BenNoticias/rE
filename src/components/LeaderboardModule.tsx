@@ -153,7 +153,7 @@ export function LeaderboardModule({ profile }: LeaderboardModuleProps) {
           <div>
             <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-xs font-semibold text-white mb-2">
               <Trophy className="w-3.5 h-3.5" />
-              <span>Classificação de Estudantes • v0.10</span>
+              <span>Classificação de Estudantes • v0.11</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Ranking Oficial de Alunos</h1>
             <p className="text-sm text-amber-100 mt-1 max-w-xl">

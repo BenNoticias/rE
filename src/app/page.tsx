@@ -36,40 +36,55 @@ export default function Home() {
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
-  const handleGoogleSessionUser = (user: any) => {
-    const userEmail = user.email || '';
-    const fullName = user.user_metadata?.full_name || user.user_metadata?.name || userEmail.split('@')[0] || 'Estudante';
-    const registered = getRegisteredUsers();
-    const existing = registered.find(u => u.email && u.email.toLowerCase() === userEmail.toLowerCase());
+  const handleAuthSessionUser = async (user: any) => {
+    const userEmail = (user.email || '').trim().toLowerCase();
+    const metadata = user.user_metadata || {};
+    const metaUsername = metadata.username || metadata.name || metadata.full_name || (userEmail ? userEmail.split('@')[0] : 'Estudante');
+    const metaGrade = (metadata.grade as GradeLevel) || '1_em';
 
-    const updated: UserProfile = existing ? {
-      ...existing,
-      id: user.id || existing.id,
-      username: existing.username || fullName,
-      name: existing.name || fullName,
+    // Sincroniza com dados oficiais da tabela 'profiles' no Supabase
+    const supabase = getSupabaseClient();
+    let dbProfile: any = null;
+    if (supabase && user.id) {
+      try {
+        const { data } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
+        if (data) dbProfile = data;
+      } catch (err) {
+        console.warn('Erro ao carregar perfil do Supabase:', err);
+      }
+    }
+
+    const registered = getRegisteredUsers();
+    const existing = registered.find(u => (u.id && u.id === user.id) || (u.email && u.email.toLowerCase() === userEmail.toLowerCase()));
+
+    const resolvedUsername = dbProfile?.username || dbProfile?.name || existing?.username || existing?.name || metaUsername;
+    const resolvedGrade = (dbProfile?.grade as GradeLevel) || existing?.grade || metaGrade;
+    const resolvedAvatar = dbProfile?.avatar_url || existing?.avatarUrl || metadata.avatar_url || metadata.picture || 'avatar_blue';
+
+    const updated: UserProfile = {
+      id: user.id || (existing ? existing.id : 'user_' + Date.now().toString(36)),
+      username: resolvedUsername,
+      name: resolvedUsername,
       email: userEmail,
-    } : {
-      id: user.id || ('user_' + Date.now().toString(36)),
-      username: fullName,
-      name: fullName,
-      email: userEmail,
-      grade: '1_em',
-      xp: 150,
-      streak: 1,
-      level: 1,
-      consent: {
+      avatarUrl: resolvedAvatar,
+      grade: resolvedGrade,
+      xp: dbProfile?.xp !== undefined ? Number(dbProfile.xp) : (existing?.xp ?? 0),
+      streak: dbProfile?.streak !== undefined ? Number(dbProfile.streak) : (existing?.streak ?? 1),
+      level: dbProfile?.level !== undefined ? Number(dbProfile.level) : (existing?.level ?? 1),
+      studyGoal: dbProfile?.study_goal || existing?.studyGoal || '',
+      school: dbProfile?.school || existing?.school || '',
+      consent: existing?.consent || {
         termsAccepted: true,
         privacyAccepted: true,
-        timestamp: new Date().toISOString(),
-        version: APP_VERSION,
+        timestamp: dbProfile?.consent_timestamp || new Date().toISOString(),
+        version: dbProfile?.consent_version || APP_VERSION,
       },
-      createdAt: new Date().toISOString(),
-      useCustomDb: false,
+      createdAt: dbProfile?.created_at || existing?.createdAt || new Date().toISOString(),
+      useCustomDb: existing?.useCustomDb || false,
     };
 
     setProfile(updated);
     saveUserProfile(updated);
-    syncUserProfileToSupabase(updated);
     setIsAuthenticated(true);
   };
 
@@ -86,20 +101,22 @@ export default function Home() {
     };
     window.addEventListener('keydown', handleKeyDown);
 
-    // Supabase Auth listener para login com Google e sincronização de sessão
+    // Supabase Auth listener para validação e sincronização de sessão oficial
     let authSubscription: any = null;
     const supabase = getSupabaseClient();
 
     if (supabase) {
       supabase.auth.getSession().then(({ data: { session } }) => {
         if (session?.user) {
-          handleGoogleSessionUser(session.user);
+          handleAuthSessionUser(session.user);
         }
       });
 
       const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
         if ((event === 'SIGNED_IN' || event === 'USER_UPDATED') && session?.user) {
-          handleGoogleSessionUser(session.user);
+          handleAuthSessionUser(session.user);
+        } else if (event === 'SIGNED_OUT') {
+          setIsAuthenticated(false);
         }
       });
       authSubscription = subscription;
@@ -119,29 +136,36 @@ export default function Home() {
     );
   }
 
-  // Handle SAS Login Screen Success
+  // Handle Login Screen Success
   const handleInitialLogin = (
     username: string, 
     email: string, 
     grade: GradeLevel,
     passwordHash?: string,
-    consent?: UserConsent
+    consent?: UserConsent,
+    userId?: string,
+    passedProfile?: UserProfile | null
   ) => {
+    const cleanEmail = email.trim().toLowerCase();
     const registered = getRegisteredUsers();
-    const existing = registered.find(u => u.email && u.email.toLowerCase() === email.toLowerCase());
+    const existing = registered.find(u => (userId && u.id === userId) || (u.email && u.email.toLowerCase() === cleanEmail));
 
-    const updated: UserProfile = existing ? {
+    const updated: UserProfile = passedProfile ? {
+      ...passedProfile,
+      passwordHash: passwordHash || passedProfile.passwordHash,
+    } : existing ? {
       ...existing,
+      id: userId || existing.id,
       username: username || existing.username || existing.name,
       name: username || existing.name,
       grade: grade || existing.grade,
       passwordHash: passwordHash || existing.passwordHash,
       consent: consent || existing.consent,
     } : {
-      id: profile.id || ('user_' + Date.now().toString(36)),
+      id: userId || profile.id || ('user_' + Date.now().toString(36)),
       username: username,
       name: username,
-      email: email,
+      email: cleanEmail,
       passwordHash: passwordHash,
       grade: grade,
       xp: profile.xp || 0,
@@ -192,28 +216,37 @@ export default function Home() {
     username: string, 
     email: string,
     passwordHash?: string,
-    consent?: UserConsent
+    consent?: UserConsent,
+    userId?: string,
+    dbProfile?: UserProfile | null
   ) => {
+    const cleanEmail = email.trim().toLowerCase();
     const registered = getRegisteredUsers();
-    const existing = registered.find(u => u.email && u.email.toLowerCase() === email.toLowerCase());
+    const existing = registered.find(u => (userId && u.id === userId) || (u.email && u.email.toLowerCase() === cleanEmail));
 
-    const updated: UserProfile = existing ? {
+    const updated: UserProfile = dbProfile ? {
+      ...dbProfile,
+      passwordHash: passwordHash || dbProfile.passwordHash,
+    } : existing ? {
       ...existing,
+      id: userId || existing.id,
       username: username || existing.username || existing.name,
       name: username || existing.name,
       passwordHash: passwordHash || existing.passwordHash,
       consent: consent || existing.consent,
     } : {
       ...profile,
+      id: userId || profile.id,
       username: username,
       name: username,
-      email: email,
+      email: cleanEmail,
       passwordHash: passwordHash || profile.passwordHash,
       consent: consent || profile.consent,
     };
 
     setProfile(updated);
     saveUserProfile(updated);
+    setIsAuthenticated(true);
   };
 
   const handleDeleteAccount = () => {

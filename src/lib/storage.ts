@@ -702,7 +702,7 @@ export function toggleItemSaved(type: HistoryItemType, id: string): boolean {
 
 /**
  * Deletes a single history item by its type and ID.
- * CRITICAL RULE (v0.10): If the item is marked as saved (isSaved === true),
+ * CRITICAL RULE (v0.11): If the item is marked as saved (isSaved === true),
  * it is ONLY hidden from the history list (hiddenFromHistory: true),
  * preserving it completely intact in the "Salvos" tab!
  */

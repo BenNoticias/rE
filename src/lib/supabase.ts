@@ -1,5 +1,5 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { UserProfile, LeaderboardUser, PastExamQuestion } from '@/types';
+import { UserProfile, LeaderboardUser, PastExamQuestion, GradeLevel, UserConsent, APP_VERSION } from '@/types';
 import { getUserProfile } from './storage';
 
 let cachedClient: SupabaseClient | null = null;
@@ -123,6 +123,236 @@ export async function signInWithGoogle(): Promise<{ error?: string }> {
   }
 }
 
+export interface AuthResult {
+  user?: any;
+  session?: any;
+  profile?: UserProfile | null;
+  error?: string;
+  needsEmailConfirmation?: boolean;
+}
+
+/**
+ * Autentica o usuário com e-mail e senha estritamente via Supabase Auth.
+ * Bloqueia e-mails não registrados ou senhas incorretas sem bypass local.
+ */
+export async function signInWithEmail(email: string, password: string): Promise<AuthResult> {
+  const client = getSupabaseClient();
+  if (!client) {
+    return {
+      error: 'Serviço de autenticação do Supabase não configurado. Verifique as credenciais no .env.'
+    };
+  }
+
+  const cleanEmail = (email || '').trim().toLowerCase();
+  if (!cleanEmail || !cleanEmail.includes('@')) {
+    return { error: 'Por favor, insira um endereço de e-mail válido.' };
+  }
+  if (!password) {
+    return { error: 'Por favor, informe sua senha.' };
+  }
+
+  try {
+    const { data, error } = await client.auth.signInWithPassword({
+      email: cleanEmail,
+      password: password,
+    });
+
+    if (error) {
+      console.warn('[Supabase Auth] Falha ao autenticar usuário:', error.message);
+      const msg = error.message.toLowerCase();
+      if (
+        msg.includes('invalid login credentials') ||
+        msg.includes('invalid credentials') ||
+        error.status === 400
+      ) {
+        return {
+          error: 'E-mail ou senha inválidos. Verifique seus dados ou crie uma conta.'
+        };
+      }
+      if (msg.includes('email not confirmed')) {
+        return {
+          error: 'E-mail ainda não confirmado. Verifique a caixa de entrada do seu e-mail para ativar sua conta.'
+        };
+      }
+      return {
+        error: error.message || 'E-mail ou senha inválidos. Verifique seus dados ou crie uma conta.'
+      };
+    }
+
+    if (!data.user) {
+      return {
+        error: 'E-mail ou senha inválidos. Verifique seus dados ou crie uma conta.'
+      };
+    }
+
+    // Busca o perfil do estudante no Supabase
+    let dbProfile: UserProfile | null = null;
+    try {
+      const { data: profData } = await client
+        .from('profiles')
+        .select('*')
+        .eq('id', data.user.id)
+        .maybeSingle();
+
+      if (profData) {
+        const username = profData.username || profData.name || data.user.user_metadata?.username || cleanEmail.split('@')[0];
+        dbProfile = {
+          id: profData.id,
+          username: username,
+          name: username,
+          email: cleanEmail,
+          avatarUrl: profData.avatar_url || 'avatar_blue',
+          grade: (profData.grade as GradeLevel) || (data.user.user_metadata?.grade as GradeLevel) || '1_em',
+          xp: Number(profData.xp) || 0,
+          level: Number(profData.level) || 1,
+          streak: Number(profData.streak) || 1,
+          studyGoal: profData.study_goal || '',
+          school: profData.school || '',
+          useCustomDb: false,
+          createdAt: profData.created_at || new Date().toISOString(),
+          consent: {
+            termsAccepted: true,
+            privacyAccepted: true,
+            timestamp: profData.consent_timestamp || new Date().toISOString(),
+            version: profData.consent_version || APP_VERSION,
+          },
+        };
+      }
+    } catch (e) {
+      console.warn('[Supabase Auth] Aviso ao carregar perfil do Supabase:', e);
+    }
+
+    return {
+      user: data.user,
+      session: data.session,
+      profile: dbProfile,
+    };
+  } catch (err: any) {
+    console.error('[Supabase Auth] Erro inesperado no login:', err);
+    return {
+      error: 'Erro de comunicação com o servidor de autenticação. Tente novamente mais tarde.'
+    };
+  }
+}
+
+/**
+ * Cria uma nova conta no Supabase Auth com dados obrigatórios de estudante e consentimento LGPD.
+ */
+export async function signUpWithEmail(params: {
+  email: string;
+  password: string;
+  username: string;
+  grade: GradeLevel;
+  consent: UserConsent;
+}): Promise<AuthResult> {
+  const client = getSupabaseClient();
+  if (!client) {
+    return {
+      error: 'Serviço de autenticação do Supabase não configurado. Verifique as credenciais no .env.'
+    };
+  }
+
+  const cleanEmail = (params.email || '').trim().toLowerCase();
+  const cleanUsername = (params.username || '').trim();
+
+  if (!cleanEmail || !cleanEmail.includes('@')) {
+    return { error: 'Por favor, insira um e-mail válido.' };
+  }
+  if (!cleanUsername) {
+    return { error: 'Por favor, defina um Nome de Usuário para seu perfil.' };
+  }
+  if (!params.password || params.password.length < 6) {
+    return { error: 'A senha deve conter no mínimo 6 caracteres.' };
+  }
+  if (!params.consent?.termsAccepted || !params.consent?.privacyAccepted) {
+    return { error: 'É necessário aceitar os Termos de Uso e a Política de Privacidade (LGPD).' };
+  }
+
+  try {
+    const { data, error } = await client.auth.signUp({
+      email: cleanEmail,
+      password: params.password,
+      options: {
+        data: {
+          username: cleanUsername,
+          name: cleanUsername,
+          grade: params.grade,
+        },
+      },
+    });
+
+    if (error) {
+      console.warn('[Supabase Auth] Erro ao cadastrar:', error.message);
+      const msg = error.message.toLowerCase();
+      if (
+        msg.includes('already registered') ||
+        msg.includes('user already exists')
+      ) {
+        return {
+          error: 'Este e-mail já está cadastrado. Faça login na sua conta existente.'
+        };
+      }
+      if (msg.includes('at least 6 characters')) {
+        return { error: 'A senha deve conter no mínimo 6 caracteres.' };
+      }
+      return { error: error.message || 'Erro ao registrar usuário. Tente novamente.' };
+    }
+
+    if (!data.user) {
+      return { error: 'Não foi possível registrar a conta. Tente novamente.' };
+    }
+
+    const newProfile: UserProfile = {
+      id: data.user.id,
+      username: cleanUsername,
+      name: cleanUsername,
+      email: cleanEmail,
+      avatarUrl: 'avatar_blue',
+      grade: params.grade,
+      xp: 0,
+      level: 1,
+      streak: 1,
+      useCustomDb: false,
+      createdAt: new Date().toISOString(),
+      consent: params.consent,
+    };
+
+    try {
+      await client.from('profiles').upsert({
+        id: data.user.id,
+        username: cleanUsername,
+        name: cleanUsername,
+        email: cleanEmail,
+        grade: params.grade,
+        xp: 0,
+        level: 1,
+        streak: 1,
+        avatar_url: 'avatar_blue',
+        consent_timestamp: params.consent.timestamp,
+        consent_version: params.consent.version,
+        consent_revoked: false,
+        updated_at: new Date().toISOString(),
+      });
+    } catch (profErr) {
+      console.warn('[Supabase Auth] Aviso ao salvar perfil inicial:', profErr);
+    }
+
+    const needsEmailConfirmation = !data.session;
+
+    return {
+      user: data.user,
+      session: data.session,
+      profile: newProfile,
+      needsEmailConfirmation,
+    };
+  } catch (err: any) {
+    console.error('[Supabase Auth] Erro inesperado ao cadastrar:', err);
+    return {
+      error: 'Erro de comunicação com o servidor de autenticação. Tente novamente mais tarde.'
+    };
+  }
+}
+
 /**
  * Encerra a sessão do usuário no Supabase
  */
@@ -195,7 +425,7 @@ export async function fetchSupabaseLeaderboard(): Promise<LeaderboardUser[] | nu
   try {
     const { data, error } = await client
       .from('profiles')
-      .select('id, username, name, grade, xp, level, streak, consent_revoked')
+      .select('id, username, name, grade, xp, level, streak, consent_revoked, avatar_url')
       .order('xp', { ascending: false });
 
     if (error || !data) {

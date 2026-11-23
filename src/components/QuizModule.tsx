@@ -309,7 +309,7 @@ export function QuizModule({
               <div>
                 <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-xs font-semibold text-white mb-2">
                   <Zap className="w-3.5 h-3.5" />
-                  <span>Simulador Inteligente Oficial (v0.10)</span>
+                  <span>Simulador Inteligente Oficial (v0.11)</span>
                 </div>
                 <h1 className="text-2xl sm:text-3xl font-black tracking-tight">Simulados Gamificados & Provas ENEM</h1>
                 <p className="text-sm text-blue-100 mt-1 max-w-xl">

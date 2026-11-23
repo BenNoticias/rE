@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useState } from 'react';
-import { UserProfile, APP_VERSION, UserConsent } from '@/types';
+import { UserProfile, APP_VERSION, UserConsent, GradeLevel } from '@/types';
 import { X, Mail, Lock, LogIn, UserPlus, Sparkles, CheckCircle2, User, AlertCircle } from 'lucide-react';
 import { hashPassword } from '@/lib/security';
-import { signInWithGoogle } from '@/lib/supabase';
+import { signInWithGoogle, signInWithEmail, signUpWithEmail } from '@/lib/supabase';
 import { LegalModal } from './LegalModal';
 
 interface AuthModalProps {
@@ -15,7 +15,9 @@ interface AuthModalProps {
     username: string, 
     email: string, 
     passwordHash?: string, 
-    consent?: UserConsent
+    consent?: UserConsent,
+    userId?: string,
+    profile?: UserProfile | null
   ) => void;
 }
 
@@ -28,7 +30,6 @@ export function AuthModal({ isOpen, onClose, profile, onLoginSuccess }: AuthModa
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
-  const [showGoogleFallback, setShowGoogleFallback] = useState(false);
   const [msg, setMsg] = useState('');
 
   // Legal modal
@@ -49,18 +50,25 @@ export function AuthModal({ isOpen, onClose, profile, onLoginSuccess }: AuthModa
     setErrorMsg('');
     setMsg('');
 
-    if (!isLogin && (!termsAccepted || !privacyAccepted)) {
-      setErrorMsg('É necessário aceitar os Termos de Uso e a Política de Privacidade.');
-      return;
-    }
+    if (!isLogin) {
+      if (!termsAccepted || !privacyAccepted) {
+        setErrorMsg('É necessário aceitar os Termos de Uso e a Política de Privacidade.');
+        return;
+      }
+      if (!username.trim()) {
+        setErrorMsg('Por favor, informe seu Nome de Usuário.');
+        return;
+      }
+      if (!email.trim() || !email.includes('@')) {
+        setErrorMsg('Por favor, informe um e-mail válido.');
+        return;
+      }
+      if (password.length < 6) {
+        setErrorMsg('A senha deve conter no mínimo 6 caracteres.');
+        return;
+      }
 
-    setLoading(true);
-
-    try {
-      const pwHash = password ? await hashPassword(password) : undefined;
-      const studentUsername = isLogin 
-        ? (username.trim() || (email ? email.split('@')[0] : 'Estudante')) 
-        : (username.trim() || 'Estudante');
+      setLoading(true);
 
       const consentData: UserConsent = {
         termsAccepted: true,
@@ -69,36 +77,95 @@ export function AuthModal({ isOpen, onClose, profile, onLoginSuccess }: AuthModa
         version: APP_VERSION,
       };
 
-      setTimeout(() => {
-        setLoading(false);
-        onLoginSuccess(
-          studentUsername, 
-          email.trim().toLowerCase() || 'aluno@escola.edu.br', 
-          pwHash, 
-          consentData
-        );
-        setMsg('Autenticado com sucesso!');
-        setTimeout(() => {
-          setMsg('');
-          onClose();
-        }, 700);
-      }, 500);
-    } catch (err) {
+      const res = await signUpWithEmail({
+        email: email.trim().toLowerCase(),
+        password,
+        username: username.trim(),
+        grade: (profile.grade as GradeLevel) || '1_em',
+        consent: consentData,
+      });
+
       setLoading(false);
-      setErrorMsg('Erro na autenticação. Tente novamente.');
+
+      if (res.error) {
+        setErrorMsg(res.error);
+        return;
+      }
+
+      if (res.needsEmailConfirmation) {
+        setMsg('Conta criada com sucesso! Verifique seu e-mail para confirmar seu cadastro antes de fazer login.');
+        setIsLogin(true);
+        setPassword('');
+        return;
+      }
+
+      const pwHash = await hashPassword(password);
+      onLoginSuccess(
+        username.trim(), 
+        email.trim().toLowerCase(), 
+        pwHash, 
+        consentData,
+        res.user?.id,
+        res.profile
+      );
+      setMsg('Cadastro realizado com sucesso!');
+      setTimeout(() => {
+        setMsg('');
+        onClose();
+      }, 700);
+    } else {
+      // Login Estrito com Supabase Auth
+      if (!email.trim() || !email.includes('@')) {
+        setErrorMsg('Por favor, informe seu e-mail de acesso cadastrado.');
+        return;
+      }
+      if (!password) {
+        setErrorMsg('Por favor, informe sua senha.');
+        return;
+      }
+
+      setLoading(true);
+
+      const res = await signInWithEmail(email.trim().toLowerCase(), password);
+      setLoading(false);
+
+      if (res.error) {
+        setErrorMsg(res.error);
+        return;
+      }
+
+      if (!res.user) {
+        setErrorMsg('E-mail ou senha inválidos. Verifique seus dados ou crie uma conta.');
+        return;
+      }
+
+      const pwHash = await hashPassword(password);
+      const studentUsername = res.profile?.username || res.user.user_metadata?.username || res.user.user_metadata?.name || email.split('@')[0];
+
+      onLoginSuccess(
+        studentUsername, 
+        email.trim().toLowerCase(), 
+        pwHash, 
+        res.profile?.consent,
+        res.user.id,
+        res.profile
+      );
+      setMsg('Autenticado com sucesso!');
+      setTimeout(() => {
+        setMsg('');
+        onClose();
+      }, 700);
     }
   };
 
   const handleGoogleAuth = async () => {
     setLoading(true);
     setErrorMsg('');
-    setShowGoogleFallback(false);
     try {
       const res = await signInWithGoogle();
       if (res?.error) {
         console.warn('[Google Auth]', res.error);
         setErrorMsg(res.error);
-        setShowGoogleFallback(true);
         setLoading(false);
         return;
       }
@@ -106,26 +173,7 @@ export function AuthModal({ isOpen, onClose, profile, onLoginSuccess }: AuthModa
     } catch (err: any) {
       setLoading(false);
       setErrorMsg(err?.message || 'Falha ao autenticar com o Google.');
-      setShowGoogleFallback(true);
     }
-  };
-
-  const handleDemoGoogleLogin = async () => {
-    setLoading(true);
-    const studentUsername = username.trim() || 'Estudante Google';
-    const pwHash = await hashPassword('google_token');
-    const consentData: UserConsent = {
-      termsAccepted: true,
-      privacyAccepted: true,
-      timestamp: new Date().toISOString(),
-      version: APP_VERSION,
-    };
-
-    setTimeout(() => {
-      setLoading(false);
-      onLoginSuccess(studentUsername, 'aluno.google@escola.edu.br', pwHash, consentData);
-      onClose();
-    }, 300);
   };
 
   return (
@@ -174,21 +222,6 @@ export function AuthModal({ isOpen, onClose, profile, onLoginSuccess }: AuthModa
           </svg>
           <span>Continuar com o Google</span>
         </button>
-
-        {showGoogleFallback && (
-          <div className="mb-3.5 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 text-xs space-y-2 animate-in fade-in">
-            <p className="text-slate-600 dark:text-slate-300 text-[11px] leading-tight">
-              O provedor Google OAuth no Supabase ou Vercel ainda requer ajuste de credenciais. Deseja acessar como estudante Google imediatamente?
-            </p>
-            <button
-              type="button"
-              onClick={handleDemoGoogleLogin}
-              className="w-full py-2 px-3 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs flex items-center justify-center space-x-1.5 transition-colors shadow-sm"
-            >
-              <span>Acessar Imediatamente com Conta Google</span>
-            </button>
-          </div>
-        )}
 
         <div className="relative my-3">
           <div className="absolute inset-0 flex items-center">
@@ -246,7 +279,7 @@ export function AuthModal({ isOpen, onClose, profile, onLoginSuccess }: AuthModa
               <input
                 type="password"
                 required
-                placeholder="••••••••"
+                placeholder={isLogin ? "••••••••" : "Mínimo 6 caracteres"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 outline-none"
@@ -300,7 +333,7 @@ export function AuthModal({ isOpen, onClose, profile, onLoginSuccess }: AuthModa
 
           {msg && (
             <div className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold flex items-center space-x-1 pt-1">
-              <CheckCircle2 className="w-4 h-4" />
+              <CheckCircle2 className="w-4 h-4 shrink-0" />
               <span>{msg}</span>
             </div>
           )}
@@ -321,6 +354,7 @@ export function AuthModal({ isOpen, onClose, profile, onLoginSuccess }: AuthModa
             onClick={() => {
               setIsLogin(!isLogin);
               setErrorMsg('');
+              setMsg('');
             }}
             className="text-xs text-blue-600 dark:text-blue-400 hover:underline font-semibold"
           >

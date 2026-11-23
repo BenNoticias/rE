@@ -161,7 +161,7 @@ export function MindmapModule({ profile, selectedSubject = 'matematica', onSaved
           <div>
             <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-xs font-semibold text-white mb-2">
               <MapPin className="w-3.5 h-3.5" />
-              <span>Mapas Mentais Multinível v0.10</span>
+              <span>Mapas Mentais Multinível v0.11</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Mapas Mentais Profundos por IA</h1>
             <p className="text-sm text-purple-100 mt-1 max-w-xl">
