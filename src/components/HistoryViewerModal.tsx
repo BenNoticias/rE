@@ -1,19 +1,19 @@
 'use client';
 
 import React, { useState } from 'react';
-import { 
-  X, 
-  Bookmark, 
-  Check, 
-  Share2, 
-  Award, 
-  Clock, 
-  BookOpen, 
-  Network, 
-  CheckCircle2, 
-  XCircle, 
-  Calendar, 
-  Lightbulb, 
+import {
+  X,
+  Bookmark,
+  Check,
+  Share2,
+  Award,
+  Clock,
+  BookOpen,
+  Network,
+  CheckCircle2,
+  XCircle,
+  Calendar,
+  Lightbulb,
   AlertCircle,
   ZoomIn,
   ZoomOut,
@@ -126,7 +126,7 @@ export function HistoryViewerModal({ item, onClose, onToggleSaved }: HistoryView
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-950/75 backdrop-blur-md animate-in fade-in duration-200">
-      <div 
+      <div
         className="w-full max-w-5xl max-h-[92vh] bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
@@ -158,11 +158,10 @@ export function HistoryViewerModal({ item, onClose, onToggleSaved }: HistoryView
             {/* Toggle Saved */}
             <button
               onClick={() => onToggleSaved(item)}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center space-x-1.5 transition-all border ${
-                item.isSaved
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center space-x-1.5 transition-all border ${item.isSaved
                   ? 'bg-amber-500 text-white border-amber-600 shadow-md shadow-amber-500/20'
                   : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100'
-              }`}
+                }`}
               title={item.isSaved ? 'Remover dos Salvos' : 'Salvar nos Meus Conteúdos'}
             >
               <Bookmark className={`w-3.5 h-3.5 ${item.isSaved ? 'fill-white' : ''}`} />
@@ -224,24 +223,22 @@ export function HistoryViewerModal({ item, onClose, onToggleSaved }: HistoryView
                   <div className="flex rounded-xl bg-slate-700/60 p-0.5 border border-slate-600">
                     <button
                       onClick={() => setMindmapViewMode('hierarchy')}
-                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${
-                        mindmapViewMode === 'hierarchy' ? 'bg-purple-600 text-white shadow' : 'text-slate-300 hover:text-white'
-                      }`}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${mindmapViewMode === 'hierarchy' ? 'bg-purple-600 text-white shadow' : 'text-slate-300 hover:text-white'
+                        }`}
                     >
                       Árvore Multinível
                     </button>
                     <button
                       onClick={() => setMindmapViewMode('graph')}
-                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${
-                        mindmapViewMode === 'graph' ? 'bg-purple-600 text-white shadow' : 'text-slate-300 hover:text-white'
-                      }`}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${mindmapViewMode === 'graph' ? 'bg-purple-600 text-white shadow' : 'text-slate-300 hover:text-white'
+                        }`}
                     >
                       Grafo Conectado
                     </button>
                   </div>
 
                   <div className="flex items-center space-x-1.5">
-                    <button 
+                    <button
                       onClick={() => setMindmapZoom(prev => Math.max(0.7, prev - 0.1))}
                       className="p-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs"
                       title="Diminuir Zoom"
@@ -251,7 +248,7 @@ export function HistoryViewerModal({ item, onClose, onToggleSaved }: HistoryView
                     <span className="text-xs text-slate-300 font-mono px-1">
                       {Math.round(mindmapZoom * 100)}%
                     </span>
-                    <button 
+                    <button
                       onClick={() => setMindmapZoom(prev => Math.min(1.4, prev + 0.1))}
                       className="p-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs"
                       title="Aumentar Zoom"
@@ -263,7 +260,7 @@ export function HistoryViewerModal({ item, onClose, onToggleSaved }: HistoryView
 
                 {/* Tree View */}
                 {mindmapViewMode === 'hierarchy' ? (
-                  <div 
+                  <div
                     className="flex-1 overflow-y-auto max-h-[500px] p-2 space-y-4 transition-transform duration-200"
                     style={{ transform: `scale(${mindmapZoom})`, transformOrigin: 'top left' }}
                   >
@@ -271,11 +268,10 @@ export function HistoryViewerModal({ item, onClose, onToggleSaved }: HistoryView
                     {rootNode && (
                       <div
                         onClick={() => setSelectedMindmapNode(rootNode)}
-                        className={`p-4 rounded-2xl cursor-pointer text-center transition-all border-2 shadow-xl ${
-                          activeSelectedNode?.id === rootNode.id
+                        className={`p-4 rounded-2xl cursor-pointer text-center transition-all border-2 shadow-xl ${activeSelectedNode?.id === rootNode.id
                             ? 'border-white ring-4 ring-blue-500/50 bg-gradient-to-r from-blue-600 to-indigo-600 text-white'
                             : 'border-blue-500/80 bg-blue-600/90 text-white hover:bg-blue-600'
-                        }`}
+                          }`}
                       >
                         <span className="text-[10px] uppercase font-black tracking-widest text-blue-200 block mb-1">
                           Conceito Central (Nível 0)
@@ -298,11 +294,10 @@ export function HistoryViewerModal({ item, onClose, onToggleSaved }: HistoryView
                           <div key={mainNode.id} className="space-y-2.5">
                             <div
                               onClick={() => setSelectedMindmapNode(mainNode)}
-                              className={`p-3.5 rounded-2xl cursor-pointer transition-all border ${
-                                isSelected
+                              className={`p-3.5 rounded-2xl cursor-pointer transition-all border ${isSelected
                                   ? 'border-purple-400 bg-purple-900/80 text-white shadow-lg ring-2 ring-purple-400/40'
                                   : 'border-slate-700 bg-slate-800/90 text-slate-200 hover:border-slate-500'
-                              }`}
+                                }`}
                             >
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center space-x-2">
@@ -341,11 +336,10 @@ export function HistoryViewerModal({ item, onClose, onToggleSaved }: HistoryView
                                     <div key={subNode.id} className="space-y-2">
                                       <div
                                         onClick={() => setSelectedMindmapNode(subNode)}
-                                        className={`p-2.5 rounded-xl cursor-pointer transition-all border ${
-                                          isSubSelected
+                                        className={`p-2.5 rounded-xl cursor-pointer transition-all border ${isSubSelected
                                             ? 'border-emerald-400 bg-emerald-950/80 text-white shadow-md ring-2 ring-emerald-400/30'
                                             : 'border-slate-700/80 bg-slate-850 text-slate-200 hover:border-slate-600'
-                                        }`}
+                                          }`}
                                       >
                                         <div className="flex items-center justify-between mb-0.5">
                                           <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
@@ -367,11 +361,10 @@ export function HistoryViewerModal({ item, onClose, onToggleSaved }: HistoryView
                                               <div
                                                 key={det.id}
                                                 onClick={() => setSelectedMindmapNode(det)}
-                                                className={`p-2 rounded-lg cursor-pointer transition-all border ${
-                                                  isDetSelected
+                                                className={`p-2 rounded-lg cursor-pointer transition-all border ${isDetSelected
                                                     ? 'border-amber-400 bg-amber-950/80 text-white shadow'
                                                     : 'border-slate-750 bg-slate-800/60 text-slate-300 hover:border-amber-500/50'
-                                                }`}
+                                                  }`}
                                               >
                                                 <span className="text-[10px] font-bold text-amber-300 block">
                                                   {det.label}
@@ -396,7 +389,7 @@ export function HistoryViewerModal({ item, onClose, onToggleSaved }: HistoryView
                   </div>
                 ) : (
                   /* Graph Grid Mode */
-                  <div 
+                  <div
                     className="flex-1 overflow-auto p-3 grid grid-cols-1 sm:grid-cols-2 gap-3"
                     style={{ transform: `scale(${mindmapZoom})`, transformOrigin: 'top left' }}
                   >
@@ -407,11 +400,10 @@ export function HistoryViewerModal({ item, onClose, onToggleSaved }: HistoryView
                         <div
                           key={node.id}
                           onClick={() => setSelectedMindmapNode(node)}
-                          className={`p-3.5 rounded-2xl cursor-pointer transition-all border ${
-                            isSelected
+                          className={`p-3.5 rounded-2xl cursor-pointer transition-all border ${isSelected
                               ? 'border-purple-400 bg-purple-900/80 text-white shadow-xl ring-2 ring-purple-400/40'
                               : 'border-slate-700 bg-slate-800/80 text-slate-200 hover:border-slate-500'
-                          }`}
+                            }`}
                         >
                           <div className="flex items-center justify-between mb-1">
                             <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full border ${badge.bg}`}>
@@ -508,7 +500,7 @@ export function HistoryViewerModal({ item, onClose, onToggleSaved }: HistoryView
                   Tópicos Estruturados e Explicações
                 </h3>
                 {item.data?.topics?.map((topic: any, idx: number) => (
-                  <div 
+                  <div
                     key={idx}
                     className="p-5 rounded-3xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 space-y-3"
                   >
@@ -524,7 +516,7 @@ export function HistoryViewerModal({ item, onClose, onToggleSaved }: HistoryView
                       <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
                         <span className="text-xs font-semibold text-slate-500 mr-1">Termos-chave:</span>
                         {topic.keyTerms.map((term: string, tIdx: number) => (
-                          <span 
+                          <span
                             key={tIdx}
                             className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 text-xs font-mono font-bold border border-slate-200 dark:border-slate-600 shadow-sm"
                           >
@@ -601,7 +593,7 @@ export function HistoryViewerModal({ item, onClose, onToggleSaved }: HistoryView
                   <span className="text-2xl font-black text-purple-700 dark:text-purple-300 flex items-center justify-center space-x-1">
                     <Timer className="w-5 h-5" />
                     <span>
-                      {item.data?.timeSpentSeconds 
+                      {item.data?.timeSpentSeconds
                         ? `${Math.floor(item.data.timeSpentSeconds / 60)}m ${item.data.timeSpentSeconds % 60}s`
                         : 'Finalizado'}
                     </span>
@@ -637,11 +629,10 @@ export function HistoryViewerModal({ item, onClose, onToggleSaved }: HistoryView
                     return (
                       <span
                         key={idx}
-                        className={`w-7 h-7 rounded-lg text-xs font-bold flex items-center justify-center border shadow-sm ${
-                          isCorrect
+                        className={`w-7 h-7 rounded-lg text-xs font-bold flex items-center justify-center border shadow-sm ${isCorrect
                             ? 'bg-emerald-500 text-white border-emerald-600'
                             : 'bg-red-500 text-white border-red-600'
-                        }`}
+                          }`}
                       >
                         {idx + 1}
                       </span>
@@ -661,22 +652,20 @@ export function HistoryViewerModal({ item, onClose, onToggleSaved }: HistoryView
                   const isCorrect = studentAns === q.correctAnswer;
 
                   return (
-                    <div 
+                    <div
                       key={idx}
-                      className={`p-5 rounded-3xl border space-y-3.5 ${
-                        isCorrect 
+                      className={`p-5 rounded-3xl border space-y-3.5 ${isCorrect
                           ? 'border-emerald-200 dark:border-emerald-900/50 bg-emerald-50/20 dark:bg-emerald-950/10'
                           : 'border-red-200 dark:border-red-900/50 bg-red-50/20 dark:bg-red-950/10'
-                      }`}
+                        }`}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100 leading-relaxed">
                           <span className="text-slate-400 mr-2 font-mono">{idx + 1}.</span>
                           {q.question}
                         </h4>
-                        <span className={`px-2.5 py-1 rounded-xl text-[10px] font-bold shrink-0 ${
-                          isCorrect ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300'
-                        }`}>
+                        <span className={`px-2.5 py-1 rounded-xl text-[10px] font-bold shrink-0 ${isCorrect ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300'
+                          }`}>
                           {isCorrect ? 'Acertou' : 'Errou'}
                         </span>
                       </div>
@@ -780,7 +769,7 @@ export function HistoryViewerModal({ item, onClose, onToggleSaved }: HistoryView
                           </span>
                         </div>
                         <div className="w-full bg-slate-200 dark:bg-slate-700 h-1.5 rounded-full overflow-hidden">
-                          <div 
+                          <div
                             className="bg-blue-600 h-full rounded-full transition-all"
                             style={{ width: `${percentage}%` }}
                           />
@@ -842,11 +831,10 @@ export function HistoryViewerModal({ item, onClose, onToggleSaved }: HistoryView
                       <button
                         key={dIdx}
                         onClick={() => setActiveScheduleDayIdx(dIdx)}
-                        className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
-                          activeScheduleDayIdx === dIdx
+                        className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${activeScheduleDayIdx === dIdx
                             ? 'bg-blue-600 text-white shadow-md'
                             : 'text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200'
-                        }`}
+                          }`}
                       >
                         {day.dayName}
                       </button>

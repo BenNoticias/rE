@@ -19,7 +19,8 @@ import {
   BrainCircuit,
   Sliders,
   Upload,
-  Music
+  Music,
+  Square
 } from 'lucide-react';
 import { UserProfile, SavedSchedule, SUBJECTS } from '@/types';
 import { saveSchedule } from '@/lib/storage';
@@ -61,10 +62,33 @@ export function ScheduleModule({ profile, onSavedScheduleAdded }: ScheduleModule
   const [isSoundMuted, setIsSoundMuted] = useState(false);
   const [showPomodoroConfig, setShowPomodoroConfig] = useState(false);
 
-  // Áudio personalizado do dispositivo
+  // Áudio personalizado do dispositivo e controle de reprodução
   const [customAudioData, setCustomAudioData] = useState<string | null>(null);
   const [customAudioName, setCustomAudioName] = useState<string>('');
+  const [isPlayingAlarm, setIsPlayingAlarm] = useState(false);
   const audioFileInputRef = useRef<HTMLInputElement>(null);
+  const currentAudioRef = useRef<HTMLAudioElement | null>(null);
+  const currentAudioCtxRef = useRef<AudioContext | null>(null);
+
+  // Parar/Pausar som imediatamente
+  const stopAlarmSound = () => {
+    if (currentAudioRef.current) {
+      try {
+        currentAudioRef.current.pause();
+        currentAudioRef.current.currentTime = 0;
+      } catch (e) {}
+      currentAudioRef.current = null;
+    }
+
+    if (currentAudioCtxRef.current) {
+      try {
+        currentAudioCtxRef.current.close();
+      } catch (e) {}
+      currentAudioCtxRef.current = null;
+    }
+
+    setIsPlayingAlarm(false);
+  };
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -75,6 +99,10 @@ export function ScheduleModule({ profile, onSavedScheduleAdded }: ScheduleModule
         setCustomAudioName(savedAudioName || 'meu_alarme.mp3');
       }
     }
+
+    return () => {
+      stopAlarmSound();
+    };
   }, []);
 
   const handleAudioFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -103,18 +131,36 @@ export function ScheduleModule({ profile, onSavedScheduleAdded }: ScheduleModule
   const playAlarmSound = (soundType: SoundOption = selectedSound) => {
     if (isSoundMuted) return;
 
+    // Se já estiver tocando, para primeiro antes de reiniciar
+    stopAlarmSound();
+
     // Se a opção selecionada for áudio personalizado do dispositivo
     if (soundType === 'custom') {
       if (customAudioData) {
         try {
           const audio = new Audio(customAudioData);
+          currentAudioRef.current = audio;
+          setIsPlayingAlarm(true);
+
+          audio.onended = () => {
+            setIsPlayingAlarm(false);
+            currentAudioRef.current = null;
+          };
+
+          audio.onerror = () => {
+            setIsPlayingAlarm(false);
+            currentAudioRef.current = null;
+          };
+
           audio.play().catch(err => {
             console.warn('Erro ao tocar áudio personalizado, reproduzindo som padrão:', err);
+            setIsPlayingAlarm(false);
             playDefaultBell();
           });
           return;
         } catch (e) {
           console.warn('Erro ao carregar áudio:', e);
+          setIsPlayingAlarm(false);
         }
       } else {
         alert('Nenhum arquivo de áudio carregado. Clique em "Escolher áudio do dispositivo".');
@@ -131,6 +177,8 @@ export function ScheduleModule({ profile, onSavedScheduleAdded }: ScheduleModule
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
       if (!AudioCtx) return;
       const ctx = new AudioCtx();
+      currentAudioCtxRef.current = ctx;
+      setIsPlayingAlarm(true);
       const now = ctx.currentTime;
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
@@ -143,7 +191,13 @@ export function ScheduleModule({ profile, onSavedScheduleAdded }: ScheduleModule
       gain.connect(ctx.destination);
       osc.start(now);
       osc.stop(now + 2.5);
-    } catch {}
+
+      setTimeout(() => {
+        setIsPlayingAlarm(false);
+      }, 2500);
+    } catch {
+      setIsPlayingAlarm(false);
+    }
   };
 
   const playDefaultSynth = (soundType: SoundOption) => {
@@ -151,7 +205,10 @@ export function ScheduleModule({ profile, onSavedScheduleAdded }: ScheduleModule
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
       if (!AudioCtx) return;
       const ctx = new AudioCtx();
+      currentAudioCtxRef.current = ctx;
+      setIsPlayingAlarm(true);
       const now = ctx.currentTime;
+      let durationMs = 2500;
 
       if (soundType === 'bell') {
         const osc = ctx.createOscillator();
@@ -165,6 +222,7 @@ export function ScheduleModule({ profile, onSavedScheduleAdded }: ScheduleModule
         gain.connect(ctx.destination);
         osc.start(now);
         osc.stop(now + 2.5);
+        durationMs = 2500;
       } else if (soundType === 'chime') {
         const notes = [523.25, 659.25, 783.99, 1046.50];
         notes.forEach((freq, idx) => {
@@ -180,6 +238,7 @@ export function ScheduleModule({ profile, onSavedScheduleAdded }: ScheduleModule
           osc.start(start);
           osc.stop(start + 1.2);
         });
+        durationMs = 2000;
       } else if (soundType === 'harp') {
         const notes = [440, 554.37, 659.25, 880, 1108.73];
         notes.forEach((freq, idx) => {
@@ -195,6 +254,7 @@ export function ScheduleModule({ profile, onSavedScheduleAdded }: ScheduleModule
           osc.start(start);
           osc.stop(start + 1.6);
         });
+        durationMs = 2200;
       } else if (soundType === 'beep') {
         [0, 0.22, 0.44].forEach((delay) => {
           const osc = ctx.createOscillator();
@@ -209,6 +269,7 @@ export function ScheduleModule({ profile, onSavedScheduleAdded }: ScheduleModule
           osc.start(start);
           osc.stop(start + 0.12);
         });
+        durationMs = 1000;
       } else {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
@@ -221,9 +282,15 @@ export function ScheduleModule({ profile, onSavedScheduleAdded }: ScheduleModule
         gain.connect(ctx.destination);
         osc.start(now);
         osc.stop(now + 1.0);
+        durationMs = 1200;
       }
+
+      setTimeout(() => {
+        setIsPlayingAlarm(false);
+      }, durationMs);
     } catch (e) {
       console.warn('Erro ao reproduzir alarme sonoro:', e);
+      setIsPlayingAlarm(false);
     }
   };
 
@@ -623,21 +690,38 @@ export function ScheduleModule({ profile, onSavedScheduleAdded }: ScheduleModule
                   <div className="flex items-center space-x-2">
                     <select
                       value={selectedSound}
-                      onChange={(e) => setSelectedSound(e.target.value as SoundOption)}
+                      onChange={(e) => {
+                        stopAlarmSound();
+                        setSelectedSound(e.target.value as SoundOption);
+                      }}
                       className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white"
                     >
                       {SOUND_LABELS.map(s => (
                         <option key={s.id} value={s.id}>{s.label}</option>
                       ))}
                     </select>
-                    <button
-                      type="button"
-                      onClick={() => playAlarmSound(selectedSound)}
-                      className="px-2.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shrink-0"
-                      title="Testar toque agora"
-                    >
-                      Testar
-                    </button>
+
+                    {isPlayingAlarm ? (
+                      <button
+                        type="button"
+                        onClick={stopAlarmSound}
+                        className="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-500 text-white text-xs font-bold shrink-0 flex items-center space-x-1 animate-pulse shadow-md shadow-red-500/30"
+                        title="Pausar / Parar som agora"
+                      >
+                        <Square className="w-3 h-3 fill-white" />
+                        <span>Pausar</span>
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => playAlarmSound(selectedSound)}
+                        className="px-2.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shrink-0 flex items-center space-x-1"
+                        title="Testar toque agora"
+                      >
+                        <Play className="w-3 h-3" />
+                        <span>Testar</span>
+                      </button>
+                    )}
                   </div>
 
                   {/* Input oculto e botão para selecionar áudio do dispositivo */}
@@ -710,6 +794,25 @@ export function ScheduleModule({ profile, onSavedScheduleAdded }: ScheduleModule
                 <span>Pausa ({breakMinutes}m)</span>
               </button>
             </div>
+
+            {/* Banner com botão de Pausa / Parar Alarme ativo */}
+            {isPlayingAlarm && (
+              <div className="p-3 rounded-2xl bg-amber-500/20 border border-amber-500/40 text-amber-200 text-xs font-bold flex items-center justify-between animate-pulse mb-3">
+                <div className="flex items-center space-x-2">
+                  <Volume2 className="w-4 h-4 text-amber-400 animate-bounce" />
+                  <span>Alarme tocando...</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={stopAlarmSound}
+                  className="px-3 py-1.5 rounded-xl bg-red-600 hover:bg-red-500 text-white text-[11px] font-extrabold shadow-md flex items-center space-x-1.5 transition-all"
+                  title="Pausar o alarme agora"
+                >
+                  <Square className="w-3 h-3 fill-white" />
+                  <span>Pausar Alarme</span>
+                </button>
+              </div>
+            )}
 
             {/* Display do Cronômetro */}
             <div className="text-center space-y-4 my-2">
